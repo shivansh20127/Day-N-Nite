@@ -6,6 +6,7 @@ var app = express();
 var connection = require('./database');
 const { sign } = require("crypto");
 const { emit } = require("process");
+const { callbackify } = require("util");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -100,10 +101,25 @@ app.post('/signup', function (req, res) {
 });
 
 
+async function show_user_page(res){
+    let query = "SELECT * FROM Account WHERE LoginID = '" + userid + "'";
+    let account = await get_row(query);
+    query = "SELECT * FROM Customer WHERE Email_ID = '" + account[0].CustomerID + "'";
+    let customer = await get_row(query);
+    
+    query = "SELECT * FROM Customer_phone WHERE CustomerID = '" + account[0].CustomerID + "'";
+    let customer_phone = await get_row(query);
+    
+    query = "SELECT * FROM Account_address WHERE LoginID = '" + account[0].LoginID + "'";
+    let customer_address = await get_row(query);
+    res.render('user', { account, customer, customer_phone, customer_address });
+}
+
 //sign in 
 app.get('/signin', function (req, res) {
     if (userid != null) {
-        res.redirect('/userpage');
+        show_user_page(res);
+        return;
     }
     res.render('./signin');
 });
@@ -173,37 +189,15 @@ app.get('/productPage/:ProductID', function (req, res, next) {
 });
 
 
-
-app.get('/userpage', function (req, res) {
-	console.log(userid);
-	let query = "SELECT * FROM Account WHERE LoginID = '" + userid + "'";
-	let account;
-	connection.query(query, function (err, rows) {
-		if(err) throw err;
-		account = rows;
-	});
-	console.log(account);
-	query = "SELECT * FROM Customer WHERE Email_ID = '" + account[0].CustomerID + "'";
-	let customer;
-	connection.query(query, function (err, rows) {
-		if(err) throw err;
-		customer = rows;
-	});
-	query = "SELECT * FROM Customer_phone WHERE CustomerID = '" + account[0].CustomerID + "'";
-	let customer_phone;
-	connection.query(query, function (err, rows) {
-		if(err) throw err;
-		customer_phone = rows;
-	});
-	query = "SELECT * FROM Account_address WHERE LoginID = '" + account[0].LoginID + "'";
-	let customer_address;
-	connection.query(query, function (err, rows) {
-		if(err) throw err;
-		customer_address = rows;
-	});
-	res.redirect('user', {account, customer, customer_phone, customer_address});
-});
-
+function get_row (query) {
+    return new Promise((resolve, reject) => {
+        connection.query(query, function (err, rows) {
+            if (err) reject(err);
+            resolve(rows);
+            //console.log(rows);
+        });
+    })
+}
 
 
 
