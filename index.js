@@ -47,7 +47,6 @@ app.get('/productPage/:ProductID', function (req, res, next) {
         } else {
         console.log(err);
         }
-        console.log({products});
     });
 });
 
