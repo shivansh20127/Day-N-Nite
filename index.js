@@ -3,7 +3,8 @@ var mysql = require("mysql");
 const path = require("path");
 var bodyParser = require('body-parser')
 var app = express();
-var connection = require('./database')
+var connection = require('./database');
+const { sign } = require("crypto");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -19,11 +20,46 @@ app.set('view engine', 'pug');
 // set the views directory
 app.set('views', path.join(__dirname, 'views'));
 
+//global variable
+let userid = null;
 
+
+//sign in 
+app.get('/signin', function (req, res) {
+    res.render('./signin');
+});
+
+app.post('/signin', function (req, res) {
+	let username = req.body.userid;
+	let password = req.body.userpasswd;
+	userid = "Sign in as " + username;
+	let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
+	connection.query(query, function (err, rows) {
+		if (err) throw err;
+		if (rows.length > 0) {
+			res.render('./', {
+				username: username,
+				products: products
+			});
+		} else {
+			res.render('./signin', {
+				error: "Invalid username or password"
+			});
+		}
+	});
+});
 
 //Endpoint
 app.get('/', function (req, res) {
-    res.render('index', { products });
+	if(userid == null) {
+		userid = "Sign in";
+		res.render('index', { products, userid });
+		userid = null;
+	}
+	else {
+		res.render('index', { products, userid });
+	}
+	console.log(userid);
     //console.log({products});
 });
 
