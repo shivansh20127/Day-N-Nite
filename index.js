@@ -174,6 +174,38 @@ app.get('/productPage/:ProductID', function (req, res, next) {
 
 
 
+app.get('/userpage', function (req, res) {
+	console.log(userid);
+	let query = "SELECT * FROM Account WHERE LoginID = '" + userid + "'";
+	let account;
+	connection.query(query, function (err, rows) {
+		if(err) throw err;
+		account = rows;
+	});
+	console.log(account);
+	query = "SELECT * FROM Customer WHERE Email_ID = '" + account[0].CustomerID + "'";
+	let customer;
+	connection.query(query, function (err, rows) {
+		if(err) throw err;
+		customer = rows;
+	});
+	query = "SELECT * FROM Customer_phone WHERE CustomerID = '" + account[0].CustomerID + "'";
+	let customer_phone;
+	connection.query(query, function (err, rows) {
+		if(err) throw err;
+		customer_phone = rows;
+	});
+	query = "SELECT * FROM Account_address WHERE LoginID = '" + account[0].LoginID + "'";
+	let customer_address;
+	connection.query(query, function (err, rows) {
+		if(err) throw err;
+		customer_address = rows;
+	});
+	res.redirect('user', {account, customer, customer_phone, customer_address});
+});
+
+
+
 
 
 // app.get('/', function (req, res) { // to display data on the browser
