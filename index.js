@@ -26,23 +26,26 @@ let userid = null;
 
 //sign in 
 app.get('/signin', function (req, res) {
+    if (userid != null) {
+        res.redirect('/userpage');
+    }
     res.render('./signin');
 });
 
 app.post('/signin', function (req, res) {
 	let username = req.body.userid;
 	let password = req.body.userpasswd;
-	userid = "Sign in as " + username;
+	userid = username;
 	let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
 	connection.query(query, function (err, rows) {
 		if (err) throw err;
 		if (rows.length > 0) {
-			res.render('./', {
-				username: username,
+			res.redirect('./', 280, {
+				userid: username,
 				products: products
 			});
 		} else {
-			res.render('./signin', {
+			res.redirect('signin', 280, {
 				error: "Invalid username or password"
 			});
 		}
@@ -59,7 +62,6 @@ app.get('/', function (req, res) {
 	else {
 		res.render('index', { products, userid });
 	}
-	console.log(userid);
     //console.log({products});
 });
 
