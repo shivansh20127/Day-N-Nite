@@ -18,12 +18,16 @@
             </form><a href="/signin" style="color: black; margin-top: 15px;">#{account[0].LoginID}</a>
         </div>
         
-        <nav class="navbar navbar-light bg-light">
+        <nav class="navbar navbar-light bg-light mt-4">
           <div class="container-fluid">
             <div class="navbar-brand fs-7 fw-bold text-warning col">Bazzar Coins: #{account[0].Bazaar_Coins}</div>
               Bootstrap
             <a class="navbar-brand" href="/my_order">
-              <div class="navbar-brand fs-7 fw-bold text-primary col">My Orders</div>
+              <div class="navbar-brand fs-7 fw-bold text-info col">My Orders</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="/my_order">
+              <div class="navbar-brand fs-7 fw-bold text-primary col">Returns/Cancel</div>
               Bootstrap
             </a>
             <a class="navbar-brand" href="#">
@@ -38,7 +42,7 @@
               <div class="navbar-brand fs-7 fw-bold text-info col">Payment Options</div>
               Bootstrap
             </a>
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="/logout">
               <div class="navbar-brand fs-8 fw-bold text-secondary col">Log Out</div>
               Bootstrap
             </a>
@@ -49,7 +53,10 @@
 
         <div class="mt-5 row">
           <div class="fs-5 fw-bold text-danger col">Welcome #{customer[0].Cutomer_Name}!</div>
-          <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">#{account[0].Account_Type}</div>
+          if account[0].Account_Type == 'P'
+            <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">Prime</div>
+          else
+            <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">Non-Prime</div>
           <div class="col-lg-2 px-5">#{customer[0].Email_ID}</div>
           <div class="col-lg-1 mb-4">
             each val in customer_phone

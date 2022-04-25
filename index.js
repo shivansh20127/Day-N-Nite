@@ -276,3 +276,8 @@ app.get('/my_order', async function (req, res, next) {
 	console.log(products);
 	res.render('my_order', { order, products, userid });
 });
+
+app.get('/logout', async function (req, res, next) {
+	userid=null;
+	res.redirect('/');
+});
