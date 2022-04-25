@@ -112,6 +112,8 @@ async function show_user_page(res){
     
     query = "SELECT * FROM Account_address WHERE LoginID = '" + account[0].LoginID + "'";
     let customer_address = await get_row(query);
+	console.log(account, customer, customer_phone, customer_address );
+
     res.render('user', { account, customer, customer_phone, customer_address });
 }
 
@@ -238,4 +240,12 @@ app.listen(3000, function () {
 		console.log('Database Connected!');
 	});
 	fetch_products();
+});
+
+
+app.get('/my_order', async function (req, res, next) {
+	let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + userid + "'";
+	let order = await get_row(query);
+	
+    
 });
