@@ -112,7 +112,6 @@ async function show_user_page(res){
     
     query = "SELECT * FROM Account_address WHERE LoginID = '" + account[0].LoginID + "'";
     let customer_address = await get_row(query);
-	console.log(account, customer, customer_phone, customer_address );
 
     res.render('user', { account, customer, customer_phone, customer_address });
 }
@@ -197,9 +196,7 @@ app.post('/productPage/:ProductID', async function (req, res, next) {
 	let Review = req.body.review;
 	let rating = req.body.rating;
 	let search = req.params;
-	console.log(search);
 	let query;
-	console.log(question);
 	if (question == undefined) {
 		if(Review == undefined) {
 			res.redirect('/productPage/' + req.params.ProductID);
@@ -241,7 +238,6 @@ function print () {
     let query = "SELECT * FROM book_id";
     connection.query(query, function (err, rows) {
         if (err) throw err;
-        console.log(rows);
         return;
     });
 }
@@ -271,6 +267,12 @@ app.listen(3000, function () {
 app.get('/my_order', async function (req, res, next) {
 	let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + userid + "'";
 	let order = await get_row(query);
-	
-    
+	let products = [];
+	console.log(order);
+	for (let i = 0; i < order.length; i++) {
+		query = "SELECT * FROM Product_order WHERE OrderID = " + order[i].OrderID + ";";
+		products.push(await get_row(query));
+	}
+	console.log(products);
+	res.render('my_order', { order, products, userid });
 });
