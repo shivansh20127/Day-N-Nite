@@ -170,22 +170,47 @@ app.post('/', function (req, res, next) {
 });
 
 
-app.get('/productPage/:ProductID', function (req, res, next) {
-    let search = req.params;
-    connection.query('SELECT * FROM product WHERE ProductID = ?', [search.ProductID], (err, products) => {
-        if (!err) {
-			if(userid == null) {
-				userid = "Sign in";
-				res.render('./productPage', { products, userid });
-				userid = null;
-			}
-			else {
-				res.render('./productPage', { products, userid });
-			}
-        } else {
-        console.log(err);
-        }
-    });
+app.get('/productPage/:ProductID', async function (req, res, next) {
+	let search = req.params;
+	let query = "SELECT * FROM product WHERE ProductID = " + [search.ProductID] + ";";
+	let product = await get_row(query);
+	query = "SELECT * FROM Question_and_answer WHERE ProductID = " + [search.ProductID] + ";";
+	let Questions = await get_row(query);
+	query = "SELECT * FROM Review WHERE ProductID = " + [search.ProductID] + ";";
+	let reviews = await get_row(query);
+	if(userid == null) {
+		userid = "Sign in";
+		res.render('./productPage', { product, userid, Questions, reviews });
+		userid = null;
+	}
+	else {
+		res.render('./productPage', { product, userid, Questions, reviews });
+	}
+});
+
+
+
+app.post('/productPage/:ProductID', async function (req, res, next) {
+	let question = req.body.question;
+	let Review = req.body.review;
+	let rating = req.body.rating;
+	let search = req.params;
+	console.log(search);
+	let query;
+	console.log(question);
+	if (question == undefined) {
+		if(Review == undefined) {
+			res.redirect('/productPage/' + req.params.ProductID);
+			return;
+		}
+		query = "Insert into Review (ProductID, LoginID, Product_Preview, Stars) VALUES (" + [search.ProductID] + ", '" + userid + "', '" + Review + "', " + rating + ");";
+		let ans = await get_row(query);
+		res.redirect('/productPage/' + req.params.ProductID);
+		return;
+	}
+	query = "Insert into QnA (ProductID, LoginID, Question_Statement) VALUES (" + [search.ProductID] + ", '" + userid + "', '" + question + "');";
+	let ans = await get_row(query);
+	res.redirect('/productPage/' + req.params.ProductID);
 });
 
 
