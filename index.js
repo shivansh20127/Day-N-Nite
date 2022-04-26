@@ -38,6 +38,22 @@ const isAuthenticated = (req, res, next) => {
 	}
 };
 
+const isemployee = (req, res, next) => {
+	if (req.session.isemployee) {
+		next();
+	} else {
+		res.redirect('/signin');
+	}
+};
+
+const issupplier = (req, res, next) => {
+	if (req.session.issupplier) {
+		next();
+	} else {
+		res.redirect('/signin');
+	}
+};
+
 
 //sign up
 app.get('/signup', function (req, res) {
@@ -147,20 +163,24 @@ app.post('/signin',async function (req, res) {
 		});
 		return;
 	}
-	let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and Email_ID = '" + password + "'";
-	let emp = await get_row(isemp);
-	if(emp.length != 0) {
-		userid = username;
-		res.redirect('stock');
-		return;
-	}
+	if (password == Number(password)) {
+		let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and EmployeeID = " + password;
+		let emp = await get_row(isemp);
+		if (emp.length != 0) {
+			req.session.isemployee = true;
+			req.session.branchid = emp[0].BranchID;
+			res.redirect('stock');
+			return;
+		}
 
-	let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and Email_ID = '" + password + "'";
-	let supp = await get_row(issupp);
-	if(supp.length != 0) {
-		userid = username;
-		res.redirect('supplier');
-		return;
+		let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and SupplierID = " + password;
+		let supp = await get_row(issupp);
+		if(supp.length != 0) {
+			req.session.issupplier = true;
+			req.session.supplierid = supp[0].SupplierID;
+			res.redirect('supplier');
+			return;
+		}
 	}
 
 	userid = username;
@@ -185,8 +205,8 @@ app.post('/signin',async function (req, res) {
 
 //stock page
 
-app.get('/stock',async function (req, res) {
-	var branchid = 12;
+app.get('/stock', isemployee, async function (req, res) {
+	var branchid = req.session.branchid;
 	let quan = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "'";
 	let stock = await get_row(quan);
 	for (let i = 0; i < stock.length; i++) {
@@ -195,15 +215,15 @@ app.get('/stock',async function (req, res) {
 		stock[i].ProductName = product[0].Product_Name;
 		stock[i].ProductPrice = product[0].Product_MRP;
 	}
-	res.render('stock', { stock , userid});
+	res.render('stock', { stock });
 });
 
 // supplier page
-app.get('/supplier',async function (req, res) {
-	res.render('supplier', {userid});
+app.get('/supplier', issupplier, async function (req, res) {
+	res.render('supplier');
 });
 
-app.post('/supplier',async function (req, res) {
+app.post('/supplier', issupplier, async function (req, res) {
 	let branchid = req.body.branchid;
 	let productid = req.body.productid;
 	let quan = req.body.quantity;
@@ -237,13 +257,15 @@ app.post('/supplier',async function (req, res) {
 	}
 
 	let branches = "SELECT * FROM Branch WHERE BranchID = '" + branchid + "'";
-	if(await get_row(branches).length == 0) {
+	let bran = await get_row(branches);
+	console.log(bran);
+	if(bran.length == 0) {
 		res.render('supplier', {
 			error : "Branch ID does not exist"
 		});
 		return;
 	}
-	var supplierid = 5;
+	var supplierid = req.session.supplierid;
 	let maxid = "SELECT MAX(SupplyID) FROM Supplies";
 	maxid = await get_row(maxid);
 	let supplyid = maxid[0]['MAX(SupplyID)'] + 1;
@@ -396,6 +418,8 @@ app.get('/my_order', isAuthenticated, async function (req, res, next) {
 app.get('/logout', isAuthenticated, async function (req, res, next) {
 	userid = null;
 	req.session.auth = false;
+	req.session.isemployee = false;
+	req.session.issupplier = false;
 	req.session.user = undefined;
 	res.redirect('/');
 });
@@ -443,8 +467,8 @@ app.get('/paymentsO', isAuthenticated, async function (req, res, next) {
 });
 
 
-app.get('/cart', async function (req, res, next) {
-	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+userid+"'";
+app.get('/cart', isAuthenticated, async function (req, res, next) {
+	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+ req.session.user +"'";
 	let paymentO = await get_row(query);
 	console.log(paymentO);
 	let creditDebit = [];
@@ -467,7 +491,7 @@ app.get('/cart', async function (req, res, next) {
 	console.log(creditDebit);
 	console.log(Net_Banking);
 	console.log(UPI);
-	res.render('cart', { userid, paymentO, creditDebit, Net_Banking, UPI });
+	res.render('cart', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
 });
 
 
