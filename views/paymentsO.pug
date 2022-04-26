@@ -64,9 +64,11 @@
                             </div>
                         else
                             each val3 in UPI
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">UPI ID: </span>#{val3[0].UPI_ID} </p>
-                                </div>
+                                if val3[0] != null
+                                    <div class="mx-5 d-flex flex justify-content-between" style="width: 100%;">
+                                        <p class="text.dark"><span class="fw-bold">UPI ID: </span>#{val3[0].UPI_ID} </p>
+                                        <a href="/U#{val3[0].PaymentID}"><button type="submit">Delete</button></a>
+                                    </div>
                             end
                     </div>
                 </div>

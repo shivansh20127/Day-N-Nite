@@ -7,6 +7,7 @@ var connection = require('./database');
 const { sign } = require("crypto");
 const { emit } = require("process");
 const { callbackify } = require("util");
+const { redirect } = require("express/lib/response");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -292,18 +293,25 @@ app.get('/paymentsO', async function (req, res, next) {
 	for (let i = 0; i < paymentO.length; i++) {
 		if(paymentO[i].Payment_type === 'CreditDebitCard'){
 			query = "SELECT * FROM CreditDebitCard WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			creditDebit.push(await get_row(query));
+			let ans = await get_row(query);
+				if (ans.length != 0)
+					creditDebit.push(ans);
 		}
 		if(paymentO[i].Payment_type === 'NetBanking'){
 			query = "SELECT * FROM Net_Banking WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			Net_Banking.push(await get_row(query));
+			let ans = await get_row(query);
+			if (ans.length != 0)
+				Net_Banking.push(ans);
 		}
 		if(paymentO[i].Payment_type === 'UPI'){
 			query = "SELECT * FROM UPI WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			UPI.push(await get_row(query));
+			let ans = await get_row(query);
+			if (ans.length != 0) {
+				UPI.push(ans);
+			}
 		}
 	}
-	console.log("data :-",  creditDebit);
+	console.log("data :-",  UPI);
 	// console.log(Net_Banking);
 	// console.log(UPI);
 	res.render('paymentsO', { userid, paymentO, creditDebit, Net_Banking, UPI });
@@ -317,4 +325,17 @@ app.get('/paymentsO', async function (req, res, next) {
 	// }
 	// console.log(products);
 	// res.render('my_order', { order, products, userid });
+});
+
+app.get('/:ID', async function (req, res, next) {
+	let type = req.params.ID[0];
+	let table;
+	switch (type) {
+		case 'U': table = 'UPI'; break;
+		case 'D': table = 'CreditDebitCard'; break;
+		case 'N': table = 'Net_Banking'; break;
+	}
+	let query = 'Delete from ' + table + ' where PaymentID = ' + req.params.ID.substring(1);
+	let ans = await get_row(query);
+	res.redirect('/paymentsO');
 });
