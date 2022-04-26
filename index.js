@@ -7,6 +7,7 @@ var connection = require('./database');
 const { sign } = require("crypto");
 const { emit } = require("process");
 const { callbackify } = require("util");
+const { get, redirect, render } = require("express/lib/response");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -124,9 +125,31 @@ app.get('/signin', function (req, res) {
     res.render('./signin');
 });
 
-app.post('/signin', function (req, res) {
+app.post('/signin',async function (req, res) {
 	let username = req.body.userid;
 	let password = req.body.userpasswd;
+	if(username == "" || password == "") {
+		res.render('signin', {
+			error : "Please fill in all the fields"
+		});
+		return;
+	}
+	let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and Email_ID = '" + password + "'";
+	let emp = await get_row(isemp);
+	if(emp.length != 0) {
+		userid = username;
+		res.redirect('stock');
+		return;
+	}
+
+	let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and Email_ID = '" + password + "'";
+	let supp = await get_row(issupp);
+	if(supp.length != 0) {
+		userid = username;
+		res.redirect('supplier');
+		return;
+	}
+
 	userid = username;
 	let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
 	connection.query(query, function (err, rows) {
@@ -144,6 +167,72 @@ app.post('/signin', function (req, res) {
 		}
 	});
 });
+
+//stock page
+
+app.get('/stock',async function (req, res) {
+	var branchid = 16;
+	let quan = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "'";
+	let stock = await get_row(quan);
+	for (let i = 0; i < stock.length; i++) {
+		let query = "SELECT * FROM Product WHERE ProductID = '" + stock[i].ProductID + "'";
+		let product = await get_row(query);
+		stock[i].ProductName = product[0].Product_Name;
+		stock[i].ProductPrice = product[0].Product_MRP;
+	}
+	res.render('stock', { stock , userid});
+});
+
+// supplier page
+app.get('/supplier',async function (req, res) {
+	res.render('supplier', {userid});
+});
+
+app.post('/supplier',async function (req, res) {
+	let branchid = req.body.branchid;
+	let productid = req.body.productid;
+	let quan = req.body.quantity;
+	let barcode = req.body.barcode;
+	if(branchid == "" || productid == "" || quan == "" || barcode == "") {
+		res.render('supplier', {
+			error : "Please fill in all the fields"
+		});
+		return;
+	}
+	if(quan<0) {
+		res.render('supplier', {
+			error : "Quantity cannot be negative"
+		});
+		return;
+	}
+	if(barcode.toString().length != 12) {
+		res.render('supplier', {
+			error : "Barcode must be of 12 digits"
+		});
+		return;
+	}
+	let branches = "SELECT * FROM Branch WHERE BranchID = '" + branchid + "'";
+	if(await get_row(branches).length == 0) {
+		res.render('supplier', {
+			error : "Branch ID does not exist"
+		});
+		return;
+	}
+	let query = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "' AND ProductID = '" + productid + "' and Barcode = '" + barcode + "'"; 
+	let stock = await get_row(query);
+	if (stock.length == 0) {
+		query = "INSERT INTO Stock (BranchID, ProductID, Product_Quantity, barcode) VALUES ('" + branchid + "', '" + productid + "', '" + quan + "', '" + barcode + "')";
+	}
+	else {
+		query = "UPDATE Stock SET Product_Quantity = '" + quan + "' WHERE BranchID = '" + branchid + "' AND ProductID = '" + productid + "' and barcode = '" + barcode + "'";
+	}
+	let ans = await get_row(query);
+	res.redirect('/supplier');
+});
+
+
+
+
 
 //Endpoint
 app.get('/', function (req, res) {
@@ -223,9 +312,6 @@ function get_row (query) {
         });
     })
 }
-
-
-
 
 // app.get('/', function (req, res) { // to display data on the browser
 //     let query = "SELECT * FROM book_id";
