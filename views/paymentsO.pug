@@ -34,8 +34,9 @@
                             </div>
                         else
                             each val3 in creditDebit
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">Card Number: </span>#{val3[0].Card_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Expiry Date: </span>#{val3[0].Expiry_Date}</p>
+                                <div class="mx-5 mb-3 d-flex flex justify-content-between">
+                                    <p class="text.dark"><span class="fw-bold">Card Number: </span>#{val3[0].Card_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Expiry Date: </span>#{val3[0].Expiry_Date}</p>
+                                    <a href="/D#{val3[0].PaymentID}"><button type="submit" class="btn btn-secondary">Delete</button></a>
                                 </div>
                             end
                     </div>
@@ -49,8 +50,9 @@
                             </div>
                         else
                             each val3 in Net_Banking
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">Account Number: </span>#{val3[0].Account_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Bank Name: </span>#{val3[0].Bank_Name} || <span class="fw-bold">IFSC Code: </span>#{val3[0].IFSC_Code}</p>
+                                <div class="mx-5 mb-3 d-flex flex justify-content-between">
+                                    <p class="text.dark"><span class="fw-bold">Account Number: </span>#{val3[0].Account_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Bank Name: </span>#{val3[0].Bank_Name} || <span class="fw-bold">IFSC Code: </span>#{val3[0].IFSC_Code}</p>
+                                    <a href="/N#{val3[0].PaymentID}"><button type="submit" class="btn btn-secondary">Delete</button></a>
                                 </div>
                             end
                     </div>
@@ -65,9 +67,9 @@
                         else
                             each val3 in UPI
                                 if val3[0] != null
-                                    <div class="mx-5 d-flex flex justify-content-between" style="width: 100%;">
+                                    <div class="mx-5 mb-3 d-flex flex justify-content-between">
                                         <p class="text.dark"><span class="fw-bold">UPI ID: </span>#{val3[0].UPI_ID} </p>
-                                        <a href="/U#{val3[0].PaymentID}"><button type="submit">Delete</button></a>
+                                        <a href="/U#{val3[0].PaymentID}"><button type="submit" class="btn btn-secondary">Delete</button></a>
                                     </div>
                             end
                     </div>
