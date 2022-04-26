@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
             |    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-        <title>My Payment Options</title>
+        <title>My Cart</title>
         <style>
         </style>
     </head>
@@ -23,7 +23,7 @@
                     <button type="submit" class="ms-1 px-2" value="OK">GO</button>
                 </form><a href="/signin" style="color: black; margin-top: 15px;">#{userid}</a>
             </div>
-            <h2 class="mt-5 mb-4">My Payments Options</h2>
+            <h2 class="mt-5 mb-4">Cart</h2>
             <div>
                 <div class="mb-3" style="border-bottom: 2px solid grey;">
                     <div style="width: 100%;">
@@ -39,38 +39,7 @@
                                 </div>
                             end
                     </div>
-                </div>
-                <div class="mb-3" style="border-bottom: 2px solid grey;">
-                    <div style="width: 100%;">
-                    <p class="text.dark"><span class="fw-bold">Net Banking</span></p>
-                        if Net_Banking.length == 0
-                            <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">None</p>
-                            </div>
-                        else
-                            each val3 in Net_Banking
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">Account Number: </span>#{val3[0].Account_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Bank Name: </span>#{val3[0].Bank_Name} || <span class="fw-bold">IFSC Code: </span>#{val3[0].IFSC_Code}</p>
-                                </div>
-                            end
-                    </div>
-                </div>
-                <div class="mb-3" style="border-bottom: 2px solid grey;">
-                    <div style="width: 100%;">
-                    <p class="text.dark"><span class="fw-bold">UPI</span></p>
-                        if UPI.length == 0
-                            <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">None</p>
-                            </div>
-                        else
-                            each val3 in UPI
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">UPI ID: </span>#{val3[0].UPI_ID} </p>
-                                </div>
-                            end
-                    </div>
-                </div>
-                    
+                </div>    
             </div>
         </div>
 

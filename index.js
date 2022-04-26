@@ -318,3 +318,41 @@ app.get('/paymentsO', async function (req, res, next) {
 	// console.log(products);
 	// res.render('my_order', { order, products, userid });
 });
+
+
+app.get('/cart', async function (req, res, next) {
+	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+userid+"'";
+	let paymentO = await get_row(query);
+	console.log(paymentO);
+	let creditDebit = [];
+	let Net_Banking = [];
+	let UPI = [];
+	for (let i = 0; i < paymentO.length; i++) {
+		if(paymentO[i].Payment_type === 'CreditDebitCard'){
+			query = "SELECT * FROM CreditDebitCard WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			creditDebit.push(await get_row(query));
+		}
+		if(paymentO[i].Payment_type === 'NetBanking'){
+			query = "SELECT * FROM Net_Banking WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			Net_Banking.push(await get_row(query));
+		}
+		if(paymentO[i].Payment_type === 'UPI'){
+			query = "SELECT * FROM UPI WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			UPI.push(await get_row(query));
+		}
+	}
+	console.log(creditDebit);
+	console.log(Net_Banking);
+	console.log(UPI);
+	res.render('cart', { userid, paymentO, creditDebit, Net_Banking, UPI });
+
+	// 
+	// let products = [];
+	// console.log(order);
+	// for (let i = 0; i < order.length; i++) {
+	// 	query = "SELECT * FROM Product_order WHERE OrderID = " + order[i].OrderID + ";";
+	// 	products.push(await get_row(query));
+	// }
+	// console.log(products);
+	// res.render('my_order', { order, products, userid });
+});
