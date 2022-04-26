@@ -1,46 +1,91 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>#{title}</title>
-    style
-        include ../static/style.css
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>User Page</title>
 </head>
 <body>
-    <nav>
-      <ul>
-        <li><a href="/"><img src="https://user-images.githubusercontent.com/76814885/164988594-bfcd76b3-2719-4933-a27e-2d5a148419b1.jpeg" width=200px height="120px" /></a></li>
-        <li class="spacebox">Welcome Anuj!</li>
-        <li><a href="/"><h2 class="logout">Log Out</h2></a></li>
-      </ul>
-    </nav>
-    <div class="wrapper">
-    <section class="mainsec">
-      <h1 class="accp_name">Anuj Yadav</h1>
-      <div class="primetag"><h2 class="accp_type">Prime</h2></div>
-      <div class="othertag">
-        <h2 class="accp_email">anuj@iiitd.ac.in</h2>
-        <h2 class="accp_phone">+91-9888888888</h2>
-        <h2 class="accp_address">Address/es:</h2>
-        <ul class="accp_add_list">
-          <li>Address 1</li>
-          <li>Address 2</li>
-        </ul>
-      </div>
-      
-    </section>
-      <aside>
-        <ul class="sidebar">
-          <li><h2 class="coins">Bazar Coins: 210</h2></li>
-          <li><a href="/"><h2>Cart</h2></li>
-          <li><a href="/"><h2>Wish List</h2></li>
-          <li><a href="/"><h2>Payment Options</h2></li>
-          <li><a href="/"><h2>My Orders</h2></li>
-          <li><a href="/"><h2>Coupons</h2></li>
-        </ul>
-      </aside>
+    <div class="container">
+        <div class="flex d-flex form-label mt-4 justify-content-between">
+            <a href="/" style="text-decoration: none">
+            |    <h1 class="me-4">Day n Nite Store</h1>
+            | </a>
+            <form action="/" method="POST" class="d-flex flex mt-2 col-6">
+                <input type="search" name="searchbox" class="form-control px-3" aria-label="searchbox" placeholder="Search Here">
+                <button type="submit" class="ms-1 px-2" value="OK">GO</button>
+            </form><a href="/signin" style="color: black; margin-top: 15px;">#{account[0].LoginID}</a>
+        </div>
+        
+        <nav class="navbar navbar-light bg-light mt-4">
+          <div class="container-fluid">
+            <div class="navbar-brand fs-7 fw-bold text-warning col">Bazzar Coins: #{account[0].Bazaar_Coins}</div>
+              Bootstrap
+            <a class="navbar-brand" href="/my_order">
+              <div class="navbar-brand fs-7 fw-bold text-info col">My Orders</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="/my_order">
+              <div class="navbar-brand fs-7 fw-bold text-primary col">Returns/Cancel</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="#">
+              <div class="navbar-brand fs-8 fw-bold text-info col">Wish List</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="/cart">
+              <div class="navbar-brand fs-8 fw-bold text-primary col">Cart</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="/paymentsO">
+              <div class="navbar-brand fs-7 fw-bold text-info col">Payment Options</div>
+              Bootstrap
+            </a>
+            <a class="navbar-brand" href="/logout">
+              <div class="navbar-brand fs-8 fw-bold text-secondary col">Log Out</div>
+              Bootstrap
+            </a>
+          </div>
+        </nav>
+
+
+
+        <div class="mt-5 row">
+          <div class="fs-5 fw-bold text-danger col">Welcome #{customer[0].Cutomer_Name}!</div>
+          if account[0].Account_Type == 'P'
+            <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">Prime</div>
+          else
+            <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">Non-Prime</div>
+          <div class="col-lg-2 px-5">#{customer[0].Email_ID}</div>
+          <div class="col-lg-1 mb-4">
+            each val in customer_phone
+                <div class="d-flex flex" style="width: 100%;"> 
+                    <div class="text col">#{val.phone_number}</div>
+                </div>
+            end
+          </div>
+          //- <div class="p-2 bd-highlight">#{customer[0].}</div>
+        </div>
+
+        
+
+
+        <div class="mt-5 row">
+          <div class="fs-5 fw-bold text-info col">Your Address/es:</div>
+          <div>
+            each val in customer_address
+                <div class="d-flex flex px-3" style="width: 100%;"> 
+                    <div class="text col">Street: #{val.Street}, Address Line: #{val.Address_Line}, District: #{val.District}, City: #{val.City}, Pincode: #{val.Pincode}, Country: #{val.Country}</div>
+                </div>
+            end
+          </div>
+        </div>
+
+
     </div>
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 </body>
 </html>
