@@ -28,11 +28,46 @@
                 <div class="mb-3" style="border-bottom: 2px solid grey;">
                     <div style="width: 100%;">
                     <p class="text.dark"><span class="fw-bold">Credit/Debit Cards</span></p>
-                        each val3 in creditDebit
+                        if creditDebit.length == 0
                             <div class="mx-5" style="width: 100%;">
-                            <p class="text.dark"><span class="fw-bold">Card Number: </span>#{val3.Card_Number}  || <span class="fw-bold">Holder Name: </span>#{val3.Holder_Name} ||  <span class="fw-bold">Expiry Date: </span>#{val3.Expiry_Date}</p>
+                                <p class="text.dark"><span class="fw-bold">None </p>
                             </div>
-                        end
+                        else
+                            each val3 in creditDebit
+                                <div class="mx-5" style="width: 100%;">
+                                <p class="text.dark"><span class="fw-bold">Card Number: </span>#{val3[0].Card_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Expiry Date: </span>#{val3[0].Expiry_Date}</p>
+                                </div>
+                            end
+                    </div>
+                </div>
+                <div class="mb-3" style="border-bottom: 2px solid grey;">
+                    <div style="width: 100%;">
+                    <p class="text.dark"><span class="fw-bold">Net Banking</span></p>
+                        if Net_Banking.length == 0
+                            <div class="mx-5" style="width: 100%;">
+                                <p class="text.dark"><span class="fw-bold">None</p>
+                            </div>
+                        else
+                            each val3 in Net_Banking
+                                <div class="mx-5" style="width: 100%;">
+                                <p class="text.dark"><span class="fw-bold">Account Number: </span>#{val3[0].Account_Number}  || <span class="fw-bold">Holder Name: </span>#{val3[0].Holder_Name} ||  <span class="fw-bold">Bank Name: </span>#{val3[0].Bank_Name} || <span class="fw-bold">IFSC Code: </span>#{val3[0].IFSC_Code}</p>
+                                </div>
+                            end
+                    </div>
+                </div>
+                <div class="mb-3" style="border-bottom: 2px solid grey;">
+                    <div style="width: 100%;">
+                    <p class="text.dark"><span class="fw-bold">UPI</span></p>
+                        if UPI.length == 0
+                            <div class="mx-5" style="width: 100%;">
+                                <p class="text.dark"><span class="fw-bold">None</p>
+                            </div>
+                        else
+                            each val3 in UPI
+                                <div class="mx-5" style="width: 100%;">
+                                <p class="text.dark"><span class="fw-bold">UPI ID: </span>#{val3[0].UPI_ID} </p>
+                                </div>
+                            end
                     </div>
                 </div>
                     
