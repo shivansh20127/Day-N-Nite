@@ -294,7 +294,7 @@ app.get('/paymentsO', async function (req, res, next) {
 			query = "SELECT * FROM CreditDebitCard WHERE PaymentID = " + paymentO[i].PaymentID + ";";
 			creditDebit.push(await get_row(query));
 		}
-		if(paymentO[i].Payment_type === 'Net_Banking'){
+		if(paymentO[i].Payment_type === 'NetBanking'){
 			query = "SELECT * FROM Net_Banking WHERE PaymentID = " + paymentO[i].PaymentID + ";";
 			Net_Banking.push(await get_row(query));
 		}
@@ -318,4 +318,3 @@ app.get('/paymentsO', async function (req, res, next) {
 	// console.log(products);
 	// res.render('my_order', { order, products, userid });
 });
-
