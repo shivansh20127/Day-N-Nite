@@ -303,9 +303,9 @@ app.get('/paymentsO', async function (req, res, next) {
 			UPI.push(await get_row(query));
 		}
 	}
-	console.log(creditDebit);
-	console.log(Net_Banking);
-	console.log(UPI);
+	console.log("data :-",  creditDebit);
+	// console.log(Net_Banking);
+	// console.log(UPI);
 	res.render('paymentsO', { userid, paymentO, creditDebit, Net_Banking, UPI });
 
 	// 
