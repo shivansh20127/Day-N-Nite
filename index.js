@@ -203,8 +203,13 @@ app.post('/signin',async function (req, res) {
 	});
 });
 
-//stock page
+app.get('/add_address', isAuthenticated, function (req, res) {
+	res.render('add_address', {userid : req.session.user});
+});
 
+
+
+//stock page
 app.get('/stock', isemployee, async function (req, res) {
 	var branchid = req.session.branchid;
 	let quan = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "'";
@@ -258,7 +263,6 @@ app.post('/supplier', issupplier, async function (req, res) {
 
 	let branches = "SELECT * FROM Branch WHERE BranchID = '" + branchid + "'";
 	let bran = await get_row(branches);
-	console.log(bran);
 	if(bran.length == 0) {
 		res.render('supplier', {
 			error : "Branch ID does not exist"
@@ -275,7 +279,6 @@ app.post('/supplier', issupplier, async function (req, res) {
 
 	let query = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "' AND ProductID = '" + productid + "' and barcode = '" + barcode + "'"; 
 	let stock = await get_row(query);
-	console.log(stock);
 	if (stock.length == 0) {
 		query = "INSERT INTO Stock (SupplyID, BranchID, ProductID, Product_Quantity, barcode) VALUES ('" + supplyid + "', '" + branchid + "', '" + productid + "', '" + quan + "', '" + barcode + "')";
 	}
@@ -361,7 +364,6 @@ function get_row (query) {
         connection.query(query, function (err, rows) {
             if (err) reject(err);
             resolve(rows);
-            //console.log(rows);
         });
     })
 }
@@ -388,7 +390,6 @@ function fetch_products () {
     let query = "SELECT * FROM product";
     connection.query(query, function (err, rows) {
         if (err) throw err;
-        //console.log(rows, "HELLO");
         products = Object.values(JSON.parse(JSON.stringify(rows)));
         return;
     });
@@ -451,26 +452,13 @@ app.get('/paymentsO', isAuthenticated, async function (req, res, next) {
 			}
 		}
 	}
-	// console.log(Net_Banking);
-	// console.log(UPI);
 	res.render('paymentsO', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
-
-	// 
-	// let products = [];
-	// console.log(order);
-	// for (let i = 0; i < order.length; i++) {
-	// 	query = "SELECT * FROM Product_order WHERE OrderID = " + order[i].OrderID + ";";
-	// 	products.push(await get_row(query));
-	// }
-	// console.log(products);
-	// res.render('my_order', { order, products, userid });
 });
 
 
 app.get('/cart', isAuthenticated, async function (req, res, next) {
 	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+ req.session.user +"'";
 	let paymentO = await get_row(query);
-	console.log(paymentO);
 	let creditDebit = [];
 	let Net_Banking = [];
 	let UPI = [];
@@ -488,9 +476,6 @@ app.get('/cart', isAuthenticated, async function (req, res, next) {
 			UPI.push(await get_row(query));
 		}
 	}
-	console.log(creditDebit);
-	console.log(Net_Banking);
-	console.log(UPI);
 	res.render('cart', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
 });
 
