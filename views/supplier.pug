@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+	<title>Sign up</title>
+	</head>
+	<body>
+		<div class="container">
+			<div class="flex d-flex form-label mt-4 justify-content-between">
+				<a href="/" style="text-decoration: none">
+				|    <h1 class="me-4">Day n Nite Store</h1>
+				|</a>
+				<form action="/" method="POST" class="d-flex flex mt-2 col-6">
+					<input type="search" name="searchbox" class="form-control px-3" aria-label="searchbox" placeholder="Search Here">
+					<button type="submit" class="ms-1 px-2" value="OK">GO</button>
+				</form><a href="/logout" style="color: black; margin-top: 15px;">Logout</a>
+			</div>
+			<h2 class="mt-5">Supplier Page</h2>
+			<form action="supplier" method="POST" class="mt-4">
+				<p class="text-danger mt-4 text-center">#{error}</p>
+				<div class="mt-4">
+					<input type="number" class="form-control  mt-4" name="branchid"  placeholder="Enter Branch Id">
+				</div>
+				<div class="mt-4">
+					<input type="text" class="form-control  mt-4" name="barcode"  placeholder="Enter Barcode">
+				</div>
+				<div class="mt-4">
+					<input type="number" class="form-control  mt-4" name="productid"  placeholder="Enter Product Id">
+				</div>
+				<div class="mt-4">
+					<input type="number" class="form-control  mt-4" name="quantity"  placeholder="Enter Quantity">
+				</div>
+				<button type="submit" class="btn mt-5 btn-outline-success">Submit</button>
+			</form>
+		</div>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+	</body>
+</html>
+
+// print a form which asks for branch id , product id and quantity
+// list all details of products and all details of branches

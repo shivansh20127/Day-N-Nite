@@ -4,10 +4,7 @@ const path = require("path");
 var bodyParser = require('body-parser')
 var app = express();
 var connection = require('./database');
-const { sign } = require("crypto");
-const { emit } = require("process");
-const { callbackify } = require("util");
-const { redirect } = require("express/lib/response");
+var session = require('express-session')
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -23,8 +20,39 @@ app.set('view engine', 'pug');
 // set the views directory
 app.set('views', path.join(__dirname, 'views'));
 
+//session
+app.use(session({
+	secret: 'secret',
+	resave: true,
+	saveUninitialized: true
+}));
+
 //global variable
 let userid = null;
+
+const isAuthenticated = (req, res, next) => {
+	if (req.session.auth) {
+		next();
+	} else {
+		res.redirect('/signin');
+	}
+};
+
+const isemployee = (req, res, next) => {
+	if (req.session.isemployee) {
+		next();
+	} else {
+		res.redirect('/signin');
+	}
+};
+
+const issupplier = (req, res, next) => {
+	if (req.session.issupplier) {
+		next();
+	} else {
+		res.redirect('/signin');
+	}
+};
 
 
 //sign up
@@ -102,8 +130,8 @@ app.post('/signup', function (req, res) {
 });
 
 
-async function show_user_page(res){
-    let query = "SELECT * FROM Account WHERE LoginID = '" + userid + "'";
+async function show_user_page(res, req){
+    let query = "SELECT * FROM Account WHERE LoginID = '" + req.session.user + "'";
     let account = await get_row(query);
     query = "SELECT * FROM Customer WHERE Email_ID = '" + account[0].CustomerID + "'";
     let customer = await get_row(query);
@@ -119,21 +147,49 @@ async function show_user_page(res){
 
 //sign in 
 app.get('/signin', function (req, res) {
-    if (userid != null) {
-        show_user_page(res);
+    if (req.session.user != undefined) {
+        show_user_page(res, req);
         return;
     }
     res.render('./signin');
 });
 
-app.post('/signin', function (req, res) {
+app.post('/signin',async function (req, res) {
 	let username = req.body.userid;
 	let password = req.body.userpasswd;
+	if(username == "" || password == "") {
+		res.render('signin', {
+			error : "Please fill in all the fields"
+		});
+		return;
+	}
+	if (password == Number(password)) {
+		let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and EmployeeID = " + password;
+		let emp = await get_row(isemp);
+		if (emp.length != 0) {
+			req.session.isemployee = true;
+			req.session.branchid = emp[0].BranchID;
+			res.redirect('stock');
+			return;
+		}
+
+		let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and SupplierID = " + password;
+		let supp = await get_row(issupp);
+		if(supp.length != 0) {
+			req.session.issupplier = true;
+			req.session.supplierid = supp[0].SupplierID;
+			res.redirect('supplier');
+			return;
+		}
+	}
+
 	userid = username;
 	let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
 	connection.query(query, function (err, rows) {
 		if (err) throw err;
 		if (rows.length > 0) {
+			req.session.user = username;
+			req.session.auth = true;
 			res.redirect('./', 280, {
 				userid: username,
 				products: products
@@ -147,17 +203,103 @@ app.post('/signin', function (req, res) {
 	});
 });
 
+//stock page
+
+app.get('/stock', isemployee, async function (req, res) {
+	var branchid = req.session.branchid;
+	let quan = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "'";
+	let stock = await get_row(quan);
+	for (let i = 0; i < stock.length; i++) {
+		let query = "SELECT * FROM Product WHERE ProductID = '" + stock[i].ProductID + "'";
+		let product = await get_row(query);
+		stock[i].ProductName = product[0].Product_Name;
+		stock[i].ProductPrice = product[0].Product_MRP;
+	}
+	res.render('stock', { stock });
+});
+
+// supplier page
+app.get('/supplier', issupplier, async function (req, res) {
+	res.render('supplier');
+});
+
+app.post('/supplier', issupplier, async function (req, res) {
+	let branchid = req.body.branchid;
+	let productid = req.body.productid;
+	let quan = req.body.quantity;
+	let barcode = req.body.barcode;
+	if(branchid == "" || productid == "" || quan == "" || barcode == "") {
+		res.render('supplier', {
+			error : "Please fill in all the fields"
+		});
+		return;
+	}
+	if(quan<0) {
+		res.render('supplier', {
+			error : "Quantity cannot be negative"
+		});
+		return;
+	}
+	if(barcode.toString().length != 12) {
+		res.render('supplier', {
+			error : "Barcode must be of 12 digits"
+		});
+		return;
+	}
+
+	let prod = "SELECT * FROM Product WHERE ProductID = '" + productid + "'";
+	let product = await get_row(prod);
+	if(product.length == 0) {
+		res.render('supplier', {
+			error : "Product does not exist"
+		});
+		return;
+	}
+
+	let branches = "SELECT * FROM Branch WHERE BranchID = '" + branchid + "'";
+	let bran = await get_row(branches);
+	console.log(bran);
+	if(bran.length == 0) {
+		res.render('supplier', {
+			error : "Branch ID does not exist"
+		});
+		return;
+	}
+	var supplierid = req.session.supplierid;
+	let maxid = "SELECT MAX(SupplyID) FROM Supplies";
+	maxid = await get_row(maxid);
+	let supplyid = maxid[0]['MAX(SupplyID)'] + 1;
+	let ins = "INSERT INTO Supplies (SupplyID,SupplierID,ProductID,BranchID,Date_of_Supply) VALUES ('" + supplyid + "', '" + supplierid + "', '" + productid + "', '" + branchid + "', CURDATE())";
+	let ans5 = await get_row(ins);
+
+
+	let query = "SELECT * FROM Stock WHERE BranchID = '" + branchid + "' AND ProductID = '" + productid + "' and barcode = '" + barcode + "'"; 
+	let stock = await get_row(query);
+	console.log(stock);
+	if (stock.length == 0) {
+		query = "INSERT INTO Stock (SupplyID, BranchID, ProductID, Product_Quantity, barcode) VALUES ('" + supplyid + "', '" + branchid + "', '" + productid + "', '" + quan + "', '" + barcode + "')";
+	}
+	else {
+		query = "UPDATE Stock SET Product_Quantity = '" + (Number(stock[0].Product_Quantity) + Number(quan)) + "' WHERE BranchID = '" + branchid + "' AND ProductID = '" + productid + "' and barcode = '" + barcode + "'";
+	}
+	let ans = await get_row(query);
+	res.redirect('/supplier');
+});
+
+
+
+
+
 //Endpoint
 app.get('/', function (req, res) {
-	if(userid == null) {
+	if(req.session.user == undefined) {
 		userid = "Sign in";
 		res.render('index', { products, userid });
 		userid = null;
 	}
 	else {
-		res.render('index', { products, userid });
+		res.render('index', { products, userid : req.session.user });
 	}
-    //console.log({products});
 });
 
 app.post('/', function (req, res, next) {
@@ -167,7 +309,7 @@ app.post('/', function (req, res, next) {
         res.render('index', { products });
         } else {
         console.log(err);
-        }
+		}
     });
 });
 
@@ -180,13 +322,13 @@ app.get('/productPage/:ProductID', async function (req, res, next) {
 	let Questions = await get_row(query);
 	query = "SELECT * FROM Review WHERE ProductID = " + [search.ProductID] + ";";
 	let reviews = await get_row(query);
-	if(userid == null) {
+	if(req.session.user == undefined) {
 		userid = "Sign in";
 		res.render('./productPage', { product, userid, Questions, reviews });
 		userid = null;
 	}
 	else {
-		res.render('./productPage', { product, userid, Questions, reviews });
+		res.render('./productPage', { product, userid : req.session.user, Questions, reviews });
 	}
 });
 
@@ -203,12 +345,12 @@ app.post('/productPage/:ProductID', async function (req, res, next) {
 			res.redirect('/productPage/' + req.params.ProductID);
 			return;
 		}
-		query = "Insert into Review (ProductID, LoginID, Product_Preview, Stars) VALUES (" + [search.ProductID] + ", '" + userid + "', '" + Review + "', " + rating + ");";
+		query = "Insert into Review (ProductID, LoginID, Product_Preview, Stars) VALUES (" + [search.ProductID] + ", '" + req.session.user + "', '" + Review + "', " + rating + ");";
 		let ans = await get_row(query);
 		res.redirect('/productPage/' + req.params.ProductID);
 		return;
 	}
-	query = "Insert into QnA (ProductID, LoginID, Question_Statement) VALUES (" + [search.ProductID] + ", '" + userid + "', '" + question + "');";
+	query = "Insert into QnA (ProductID, LoginID, Question_Statement) VALUES (" + [search.ProductID] + ", '" + req.session.user + "', '" + question + "');";
 	let ans = await get_row(query);
 	res.redirect('/productPage/' + req.params.ProductID);
 });
@@ -223,10 +365,6 @@ function get_row (query) {
         });
     })
 }
-
-
-
-
 
 
 function print () {
@@ -259,28 +397,29 @@ app.listen(3000, function () {
 });
 
 
-app.get('/my_order', async function (req, res, next) {
-	let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + userid + "'";
+app.get('/my_order', isAuthenticated, async function (req, res, next) {
+	let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + req.session.user + "'";
 	let order = await get_row(query);
 	let products = [];
-	console.log(order);
 	for (let i = 0; i < order.length; i++) {
 		query = "SELECT * FROM Product_order WHERE OrderID = " + order[i].OrderID + ";";
 		products.push(await get_row(query));
 	}
-	console.log(products);
-	res.render('my_order', { order, products, userid });
+	res.render('my_order', { order, products, userid : req.session.user });
 });
 
-app.get('/logout', async function (req, res, next) {
-	userid=null;
+app.get('/logout', isAuthenticated, async function (req, res, next) {
+	userid = null;
+	req.session.auth = false;
+	req.session.isemployee = false;
+	req.session.issupplier = false;
+	req.session.user = undefined;
 	res.redirect('/');
 });
 
-app.get('/paymentsO', async function (req, res, next) {
-	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+userid+"'";
+app.get('/paymentsO', isAuthenticated, async function (req, res, next) {
+	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+ req.session.user +"'";
 	let paymentO = await get_row(query);
-	console.log(paymentO);
 	let creditDebit = [];
 	let Net_Banking = [];
 	let UPI = [];
@@ -305,10 +444,9 @@ app.get('/paymentsO', async function (req, res, next) {
 			}
 		}
 	}
-	console.log("data :-",  UPI);
 	// console.log(Net_Banking);
 	// console.log(UPI);
-	res.render('paymentsO', { userid, paymentO, creditDebit, Net_Banking, UPI });
+	res.render('paymentsO', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
 
 });
 
