@@ -368,13 +368,6 @@ function get_row (query) {
     })
 }
 
-// app.get('/', function (req, res) { // to display data on the browser
-//     let query = "SELECT * FROM book_id";
-//     connection.query(query, function (err, rows) {
-//         if (err) throw err;
-//         res.send(rows);
-//     });
-// })
 
 function print () {
     let query = "SELECT * FROM book_id";
@@ -453,49 +446,86 @@ app.get('/paymentsO', isAuthenticated, async function (req, res, next) {
 		}
 	}
 	res.render('paymentsO', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
+
 });
 
 
-app.get('/cart', isAuthenticated, async function (req, res, next) {
-	let query = "SELECT * FROM Payment_Options WHERE LoginID = '"+ req.session.user +"'";
-	let paymentO = await get_row(query);
-	let creditDebit = [];
-	let Net_Banking = [];
-	let UPI = [];
-	for (let i = 0; i < paymentO.length; i++) {
-		if(paymentO[i].Payment_type === 'CreditDebitCard'){
-			query = "SELECT * FROM CreditDebitCard WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			creditDebit.push(await get_row(query));
-		}
-		if(paymentO[i].Payment_type === 'NetBanking'){
-			query = "SELECT * FROM Net_Banking WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			Net_Banking.push(await get_row(query));
-		}
-		if(paymentO[i].Payment_type === 'UPI'){
-			query = "SELECT * FROM UPI WHERE PaymentID = " + paymentO[i].PaymentID + ";";
-			UPI.push(await get_row(query));
-		}
+app.get('/cart', async function (req, res, next) {
+	let query = "SELECT Cart.Quantity, Cart.LoginID, Cart.ProductID, Product.ProductID, Product.Product_Name, Product.Product_MRP, Product.Applicable_SGST, Product.Applicable_CGST, Product.Product_link FROM Cart, Product WHERE Cart.LoginID = '"+userid+"' AND Cart.ProductID = Product.ProductID";
+	let cart_products = await get_row(query);
+	console.log(cart_products);
+	let total = 0;
+	let pro_total = [];
+	let pro_q_total = [];
+	for (let i = 0; i < cart_products.length; i++) {
+		let ct = (cart_products[i].Product_MRP+((cart_products[i].Applicable_SGST*cart_products[i].Product_MRP)/100)+ ((cart_products[i].Applicable_CGST*cart_products[i].Product_MRP)/100));
+		pro_total.push(Math.floor(ct * 100) / 100);
+		pro_q_total.push(Math.floor((ct * cart_products[i].Quantity) * 100) / 100);
+		total += Math.floor((ct * cart_products[i].Quantity) * 100) / 100;
 	}
-	res.render('cart', { userid : req.session.user, paymentO, creditDebit, Net_Banking, UPI });
+	total = Math.floor(total * 100) / 100;
+	console.log(total,pro_total);
+	res.render('cart', { userid, cart_products, pro_total, total, pro_q_total });
+
 });
 
-
-app.get('/:ID', isAuthenticated, async function (req, res, next) {
+	
+app.get('/:ID', async function (req, res, next) {
+	console.log(req.params.ID);
 	let type = req.params.ID[0];
 	let table;
+	let query;
+	let ans;
 	switch (type) {
-		case 'U': table = 'UPI'; break;
-		case 'D': table = 'CreditDebitCard'; break;
-		case 'N': table = 'Net_Banking'; break;
-		default : table = 'trash'; break;
+		case 'U': table = 'UPI';
+					query = 'Delete from ' + table + ' where PaymentID = ' + req.params.ID.substring(1);
+					ans = await get_row(query);
+					res.redirect('/paymentsO'); 
+					break;
+		case 'D': table = 'CreditDebitCard'; 
+					query = 'Delete from ' + table + ' where PaymentID = ' + req.params.ID.substring(1);
+					ans = await get_row(query);
+					res.redirect('/paymentsO');
+					break; 
+		case 'N': table = 'Net_Banking';
+					query = 'Delete from ' + table + ' where PaymentID = ' + req.params.ID.substring(1);
+					ans = await get_row(query);
+					res.redirect('/paymentsO');
+					break; 
+		case 'M': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+					ans = await get_row(query);
+					let quant = JSON.parse(JSON.stringify(ans));
+					quant = quant[0].Quantity;
+					// console.log(quant[0].Quantity);
+					query = "UPDATE Cart SET Quantity = Quantity - 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+					ans = await get_row(query);
+					quant = quant - 1;
+					if(quant === 0){
+						query = "DELETE FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+						ans = await get_row(query);
+					}
+					res.redirect('/cart');
+					break;
+		case 'P': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+					ans = await get_row(query);
+					let quant1 = JSON.parse(JSON.stringify(ans));
+					quant1 = quant1[0].Quantity;
+					query = "SELECT SUM(Product_Quantity) AS Quantity FROM Stock WHERE ProductID = "+ req.params.ID.substring(1);
+					ans = await get_row(query);
+					let pc = JSON.parse(JSON.stringify(ans));
+					pc = pc[0].Quantity;
+					if(pc > quant1){
+						query = "UPDATE Cart SET Quantity = Quantity + 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+						ans = await get_row(query);
+						res.redirect('/cart');
+					}
+					else{
+						res.redirect('/cart');
+					}
+
+					// console.log(quant[0].Quantity);
+					
+					break; 
 	}
-	if (table === 'trash') {
-		res.redirect('/');
-		return;
-	}
-	let query = 'Delete from ' + table + ' where PaymentID = ' + req.params.ID.substring(1);
-	let ans = await get_row(query);
-	res.redirect('/paymentsO');
+	
 });
-
-
