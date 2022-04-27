@@ -341,6 +341,284 @@ app.get("/delivery_login/", function(req, res, next)
 	res.send(html);
 });
 
+/*
+ ************************************************************************
+ OFFLINE PURCHASE PAGES
+ ************************************************************************
+ */
+
+app.get('/purchase_offline/branch_login', function(req, res, next)
+{
+	console.log("Branch login....");
+
+	let html = `
+	<h3>Employee Login</h3>
+	<form action="/purchase_offline/branch_login_verify" method="post">
+		Employee ID:
+		<input type="text" name="employee_id_field">
+		<br>
+		Date of Birth:
+		<input type="date" name="employee_dob_field">
+		<br>
+		<input type="submit" value="SUBMIT">
+	</form>
+	`
+	res.setHeader("Content-Type", "text/html");
+	res.send(html);
+});
+
+app.post('/purchase_offline/branch_login_verify', function(req, res, next)
+{
+	console.log("Verifying Branch login....");
+
+	var employee_id = req.body.employee_id_field;
+	var employee_dob = req.body.employee_dob_field;
+
+	// let sql = `SELECT COUNT(*) AS 'count'
+	// FROM Manager M
+	// WHERE M.BranchID = ${branch_id} AND M.EmployeeID = ${manager_id};`;
+	let sql = `SELECT E.BranchID
+	FROM Employee E
+	WHERE E.EmployeeID = ${employee_id} AND E.Date_of_join = '${employee_dob}';`;
+
+	// List of items selected and their quantities (initially empty)
+	var item_list = [0];
+	var quantity_list = [0];
+
+	connection.query(sql, (err, result) => {
+		if(err)
+		{
+			throw err;
+			res.redirect('..');
+			return;
+		}
+		if(result.length > 0)
+		{
+			console.log("VERIFIED");
+			res.redirect(`../purchase_offline/?branch_id=${result[0].BranchID}&item_list=${item_list}&quantity_list=${quantity_list}`);
+		}
+		else
+		{
+			console.log("INVALID LOGIN");
+			res.redirect('..');
+		}
+	});
+});
+
+app.get('/purchase_offline', function(req, res, next)
+{
+	console.log(`Purchasing from Branch ${req.query.branch_id}...`);
+	var quantity_list = req.query.quantity_list.split(",").map(Number);
+	console.log(quantity_list);
+	// console.log(test_array[1]+14);
+	let html = `
+	<h3>Make Offline Purchase (Branch ${req.query.branch_id})</h3>
+	<form action="/purchase_offline/add_item/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}" method="post">
+		Barcode:
+		<input type="text" name="barcode_field">
+		<input type="submit" value="ADD ITEM">
+	</form>
+	<br>
+	`
+	let sql = `
+	SELECT *
+	FROM Stock S
+	WHERE S.BranchID = ${req.query.branch_id};`;
+
+	connection.query(sql, (err, result) => {
+		if(err) throw err;
+
+		var item_list = req.query.item_list.split(",");
+		var quantity_list = req.query.quantity_list.split(",").map(Number);
+
+		html += `<br><b>Bar Code | Product ID | Stock Quantity</b><br><br>`
+		for(let i = 0; i < result.length; i++)
+		{
+			var index = item_list.indexOf(result[i].barcode);
+			if(index < 0)
+			{
+				html += `${result[i].barcode} | ${result[i].ProductID} | ${result[i].Product_Quantity}<br>`;
+			}
+			else
+			{
+				html += `${result[i].barcode} | ${result[i].ProductID} | ${result[i].Product_Quantity - quantity_list[index]}<br>`;
+			}
+		}
+		html += `
+		<form action="/purchase_offline/checkout/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}" method="post">
+			<input type="submit" value="CHECKOUT">
+		</form>
+		`
+		res.setHeader("Content-Type", "text/html");
+		res.send(html);
+	});
+});
+
+app.post('/purchase_offline/add_item', function(req, res, next)
+{
+	var new_barcode = req.body.barcode_field;
+	var item_list = req.query.item_list.split(",");
+	var quantity_list = req.query.quantity_list.split(",").map(Number);
+	console.log(item_list);
+	console.log(quantity_list);
+
+	var index = item_list.indexOf(new_barcode);
+	if(index == -1)
+	{
+		let sql = `
+		SELECT S.Product_Quantity as 'quantity'
+		FROM Stock S
+		WHERE S.BranchID = ${req.query.branch_id} AND S.barcode = ${new_barcode}`;
+		connection.query(sql, (err, result) => {
+			if(err) throw err;
+			if(result[0].quantity > 0)
+			{
+				item_list.push(new_barcode);
+				quantity_list.push(1);
+			}
+			res.redirect(`../?branch_id=${req.query.branch_id}&item_list=${item_list}&quantity_list=${quantity_list}`);
+		});
+	}
+	else
+	{
+		let sql = `
+		SELECT S.Product_Quantity as 'quantity'
+		FROM Stock S
+		WHERE S.BranchID = ${req.query.branch_id} AND S.barcode = ${new_barcode}`;
+		connection.query(sql, (err, result) => {
+			if(err) throw err;
+			if(result[0].quantity > quantity_list[index])
+			{
+				quantity_list[index] += 1;
+			}
+			res.redirect(`../?branch_id=${req.query.branch_id}&item_list=${item_list}&quantity_list=${quantity_list}`);
+		});
+	}
+});
+
+app.post('/purchase_offline/checkout', function(req, res, next)
+{
+	var item_list = req.query.item_list.split(",");
+	var quantity_list = req.query.quantity_list.split(",").map(Number);
+	console.log(new Array(item_list.length).fill('0'));
+
+	var productID_list = new Array(item_list.length).fill(0);
+	var productName_list = new Array(item_list.length).fill(0);
+	var cost_list = new Array(item_list.length).fill(0);
+
+	for(let i = 0; i < item_list.length; i++)
+	{
+		if(quantity_list[i] > 0)
+		{
+			let sql = `
+			SELECT S.ProductID
+			FROM Stock S
+			WHERE S.BranchID = ${req.query.branch_id} AND S.barcode = '${item_list[i]}';`;
+
+			connection.query(sql, (err, result) => {
+				if(err) throw err;
+				productID_list[i] = result[0].ProductID;
+				let sql2 = `
+				SELECT P.Product_Name AS ProductName, (P.Product_MRP + P.Applicable_CGST + P.Applicable_SGST) * ${quantity_list[i]} AS Cost
+				FROM Product P
+				WHERE P.ProductID = ${result[0].ProductID};`;
+
+				connection.query(sql2, (err2, result2) => {
+					if(err2) throw err2;
+					productName_list[i] = result2[0].ProductName;
+					cost_list[i] = result2[0].Cost;
+				});
+			});
+		}
+	}
+
+	setTimeout(function() {
+		let html = `
+		<h3>Purchased Items:</h3>
+		<b>Barcode || ProductID || Product Name || Qty || Total Cost (Incl. taxes)</b><br><br>
+		`
+		var total_cost = 0;
+		for(let i = 0; i < item_list.length; i++)
+		{
+			if(quantity_list[i] > 0)
+			{
+				html += `${item_list[i]} || ${productID_list[i]} || ${productName_list[i]} || ${quantity_list[i]} 
+				|| ${cost_list[i]}<br>`;
+				total_cost += cost_list[i];
+			}
+		}
+		html += `<br>Total Cost: <b>${total_cost}</b><br><br>`;
+		html += `
+		<form action="/purchase_offline/register_purchase/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}&total_charge=${total_cost}
+		&productID_list=${productID_list}" method="post">
+			Customer ID:
+			<input type="text" name="customer_id_field">
+			<br>
+			Payment Mode:
+			<input type="text" name="payment_mode_field">
+			<br>
+			<input type="submit" value="CONFIRM PURCHASE">
+		</form>`
+
+		res.setHeader("Content-Type", "text/html");
+		res.send(html);
+	}, 1000);
+});
+
+app.post("/purchase_offline/register_purchase", function(req, res, next)
+{
+	let sql = `INSERT INTO Offline_Purchase (date_of_purchase, payment_mode, total_charge, branchid, customerid) 
+	VALUES (CURDATE(), '${req.body.payment_mode_field}', ${req.query.total_charge}, ${req.query.branch_id}, ${req.body.customer_id_field});`;
+	
+
+	connection.query(sql, (err, result) => {
+		if(err) throw err;
+
+		let sql2 = `
+		SELECT MAX(OP.PurchaseID) AS PurchaseID
+		FROM Offline_Purchase OP;`;
+
+		connection.query(sql2, (err2, result2) => {
+			if(err2) throw err2;
+			var purchaseID = result2[0].PurchaseID;
+			
+			if(req.body.payment_mode_field != "Cash")
+			{
+				let sql_trans = `INSERT INTO Offline_Transaction (PurchaseID) VALUES (${purchaseID});`;
+				connection.query(sql_trans, (err3, result3) => {
+					if(err3) throw err3;
+				});
+			}
+
+			var item_list = req.query.item_list.split(",");
+			var quantity_list = req.query.quantity_list.split(",").map(Number);
+			var productID_list = req.query.productID_list.split(",");
+
+			for(let i = 0; i < item_list.length; i++)
+			{
+				if(quantity_list[i] > 0)
+				{
+					let sql3 = `INSERT INTO Purchase_List VALUES (${purchaseID}, '${item_list[i]}', ${quantity_list[i]}, ${productID_list[i]});`;
+					connection.query(sql3, (err3, result3) => {
+						if(err3) throw err3;
+					});
+				}
+			}
+		});
+	});
+
+	
+	let html = `
+	<h1>Purchase Successful.</h1>
+	Thank you for shopping with us :)<br><br>
+	<form action="/" method=get>
+		<input type="submit" value="Back To HOME">
+	</form>`
+
+	res.setHeader("Content-Type", "text/html");
+	res.send(html);
+});
+
 app.get('/purchase_online/', function (req, res) {
 	if(req.session.user == undefined) {
 		userid = "Sign in";
@@ -434,15 +712,6 @@ function fetch_products () {
         return;
     });
 }
-
-app.listen(3000, function () {
-	console.log('App listening on port 3000');
-	connection.connect(function (err) {
-		if (err) throw err;
-		console.log('Database Connected!');
-	});
-	fetch_products();
-});
 
 
 app.get('/my_order', isAuthenticated, async function (req, res, next) {
@@ -575,244 +844,6 @@ app.get('/:ID', async function (req, res, next) {
 					break; 
 	}
 	
-});
-
-/*
- ************************************************************************
- OFFLINE PURCHASE PAGES
- ************************************************************************
- */
-
-app.get('/purchase_offline/branch_login', function(req, res, next)
-{
-	console.log("Branch login....");
-
-	let html = `
-	<h3>Employee Login</h3>
-	<form action="/purchase_offline/branch_login_verify" method="post">
-		Employee ID:
-		<input type="text" name="employee_id_field">
-		<br>
-		Date of Birth:
-		<input type="date" name="employee_dob_field">
-		<br>
-		<input type="submit" value="SUBMIT">
-	</form>
-	`
-	res.setHeader("Content-Type", "text/html");
-	res.send(html);
-});
-
-app.post('/purchase_offline/branch_login_verify', function(req, res, next)
-{
-	console.log("Verifying Branch login....");
-
-	var employee_id = req.body.employee_id_field;
-	var employee_dob = req.body.employee_dob_field;
-
-	// let sql = `SELECT COUNT(*) AS 'count'
-	// FROM Manager M
-	// WHERE M.BranchID = ${branch_id} AND M.EmployeeID = ${manager_id};`;
-	let sql = `SELECT E.BranchID
-	FROM Employee E
-	WHERE E.EmployeeID = ${employee_id} AND E.Date_of_join = '${employee_dob}';`;
-
-	// List of items selected and their quantities (initially empty)
-	var item_list = [0];
-	var quantity_list = [0];
-
-	connection.query(sql, (err, result) => {
-		if(err)
-		{
-			throw err;
-			res.redirect('..');
-			return;
-		}
-		if(result.length > 0)
-		{
-			console.log("VERIFIED");
-			res.redirect(`../purchase_offline/?branch_id=${result[0].BranchID}&item_list=${item_list}&quantity_list=${quantity_list}`);
-		}
-		else
-		{
-			console.log("INVALID LOGIN");
-			res.redirect('..');
-		}
-	});
-});
-
-app.get('/purchase_offline', function(req, res, next)
-{
-	console.log(`Purchasing from Branch ${req.query.branch_id}...`);
-	var quantity_list = req.query.quantity_list.split(",").map(Number);
-	console.log(quantity_list);
-	// console.log(test_array[1]+14);
-	let html = `
-	<h3>Make Offline Purchase (Branch ${req.query.branch_id})</h3>
-	<form action="/purchase_offline/add_item/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}" method="post">
-		Barcode:
-		<input type="text" name="barcode_field">
-		<input type="submit" value="ADD ITEM">
-	</form>
-	<br>
-	`
-	let sql = `
-	SELECT *
-	FROM Stock S
-	WHERE S.BranchID = ${req.query.branch_id};`;
-
-	connection.query(sql, (err, result) => {
-		if(err) throw err;
-
-		html += `<br><b>Bar Code | Product ID | Stock Quantity</b><br><br>`
-		for(let i = 0; i < result.length; i++)
-		{
-			html += `${result[i].barcode} | ${result[i].ProductID} | ${result[i].Product_Quantity}<br>`;
-		}
-		html += `
-		<form action="/purchase_offline/checkout/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}" method="post">
-			<input type="submit" value="CHECKOUT">
-		</form>
-		`
-		res.setHeader("Content-Type", "text/html");
-		res.send(html);
-	});
-});
-
-app.post('/purchase_offline/add_item', function(req, res, next)
-{
-	var new_barcode = req.body.barcode_field;
-	var item_list = req.query.item_list.split(",");
-	var quantity_list = req.query.quantity_list.split(",").map(Number);
-	console.log(item_list);
-	console.log(quantity_list);
-
-	var index = item_list.indexOf(new_barcode);
-	if(index == -1)
-	{
-		item_list.push(new_barcode);
-		quantity_list.push(1);
-	}
-	else
-	{
-		quantity_list[index] += 1;
-	}
-
-	res.redirect(`../?branch_id=${req.query.branch_id}&item_list=${item_list}&quantity_list=${quantity_list}`);
-});
-
-app.post('/purchase_offline/checkout', function(req, res, next)
-{
-	var item_list = req.query.item_list.split(",");
-	var quantity_list = req.query.quantity_list.split(",").map(Number);
-	console.log(new Array(item_list.length).fill('0'));
-
-	var productID_list = new Array(item_list.length).fill(0);
-	var productName_list = new Array(item_list.length).fill(0);
-	var cost_list = new Array(item_list.length).fill(0);
-
-	for(let i = 0; i < item_list.length; i++)
-	{
-		if(quantity_list[i] > 0)
-		{
-			let sql = `
-			SELECT S.ProductID
-			FROM Stock S
-			WHERE S.BranchID = ${req.query.branch_id} AND S.barcode = '${item_list[i]}';`;
-
-			connection.query(sql, (err, result) => {
-				if(err) throw err;
-				productID_list[i] = result[0].ProductID;
-				let sql2 = `
-				SELECT P.Product_Name AS ProductName, (P.Product_MRP + P.Applicable_CGST + P.Applicable_SGST) * ${quantity_list[i]} AS Cost
-				FROM Product P
-				WHERE P.ProductID = ${result[0].ProductID};`;
-
-				connection.query(sql2, (err2, result2) => {
-					if(err2) throw err2;
-					productName_list[i] = result2[0].ProductName;
-					cost_list[i] = result2[0].Cost;
-				});
-			});
-		}
-	}
-
-	setTimeout(function() {
-		let html = `
-		<h3>Purchased Items:</h3>
-		<b>Barcode || ProductID || Product Name || Qty || Total Cost (Incl. taxes)</b><br><br>
-		`
-		var total_cost = 0;
-		for(let i = 0; i < item_list.length; i++)
-		{
-			if(quantity_list[i] > 0)
-			{
-				html += `${item_list[i]} || ${productID_list[i]} || ${productName_list[i]} || ${quantity_list[i]} 
-				|| ${cost_list[i]}<br>`;
-				total_cost += cost_list[i];
-			}
-		}
-		html += `<br>Total Cost: <b>${total_cost}</b><br><br>`;
-		html += `
-		<form action="/purchase_offline/register_purchase/?branch_id=${req.query.branch_id}&item_list=${req.query.item_list}&quantity_list=${req.query.quantity_list}&total_charge=${total_cost}
-		&productID_list=${productID_list}" method="post">
-			Customer ID:
-			<input type="text" name="customer_id_field">
-			<br>
-			Payment Mode:
-			<input type="text" name="payment_mode_field">
-			<br>
-			<input type="submit" value="CONFIRM PURCHASE">
-		</form>`
-
-		res.setHeader("Content-Type", "text/html");
-		res.send(html);
-	}, 1000);
-});
-
-app.post("/purchase_offline/register_purchase", function(req, res, next)
-{
-	let sql = `INSERT INTO Offline_Purchase (date_of_purchase, payment_mode, total_charge, branchid, customerid) 
-	VALUES (CURDATE(), '${req.body.payment_mode_field}', ${req.query.total_charge}, ${req.query.branch_id}, ${req.body.customer_id_field});`;
-	
-	connection.query(sql, (err, result) => {
-		if(err) throw err;
-
-		let sql2 = `
-		SELECT MAX(OP.PurchaseID) AS PurchaseID
-		FROM Offline_Purchase OP;`;
-
-		connection.query(sql2, (err2, result2) => {
-			if(err2) throw err2;
-			var purchaseID = result2[0].PurchaseID;
-
-			var item_list = req.query.item_list.split(",");
-			var quantity_list = req.query.quantity_list.split(",").map(Number);
-			var productID_list = req.query.productID_list.split(",");
-
-			for(let i = 0; i < item_list.length; i++)
-			{
-				if(quantity_list[i] > 0)
-				{
-					let sql3 = `INSERT INTO Purchase_List VALUES (${purchaseID}, '${item_list[i]}', ${quantity_list[i]}, ${productID_list[i]});`;
-					connection.query(sql3, (err3, result3) => {
-						if(err3) throw err3;
-					});
-				}
-			}
-		});
-	});
-
-	
-	let html = `
-	<h1>Purchase Successful.</h1>
-	Thank you for shopping with us :)<br><br>
-	<form action="/" method=get>
-		<input type="submit" value="Back To HOME">
-	</form>`
-
-	res.setHeader("Content-Type", "text/html");
-	res.send(html);
 });
 
 /*
@@ -1015,4 +1046,13 @@ app.post("/delivery_status/update/returned", function(req, res, next)
 			res.redirect(`../../?service_id=${req.query.service_id}`);
 		});
 	});
+});
+
+app.listen(3000, function () {
+	console.log('App listening on port 3000');
+	connection.connect(function (err) {
+		if (err) throw err;
+		console.log('Database Connected!');
+	});
+	fetch_products();
 });
