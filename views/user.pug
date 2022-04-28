@@ -22,11 +22,15 @@
           <div class="container-fluid">
             <div class="navbar-brand fs-7 fw-bold text-warning col">Bazzar Coins: #{account[0].Bazaar_Coins}</div>
               Bootstrap
+            <a class="navbar-brand" href="/claim_coupons">
+              <div class="navbar-brand fs-7 fw-bold text-primary col">Coupons</div>
+              Bootstrap
+            </a>
             <a class="navbar-brand" href="/my_order">
               <div class="navbar-brand fs-7 fw-bold text-info col">My Orders</div>
               Bootstrap
             </a>
-            <a class="navbar-brand" href="/my_order">
+            <a class="navbar-brand" href="/returnCancel">
               <div class="navbar-brand fs-7 fw-bold text-primary col">Returns/Cancel</div>
               Bootstrap
             </a>
@@ -77,11 +81,17 @@
             <a href="/add_address"><button type="submit" class=" ms-4 mb-5 btn btn-outline-success">Add Address</button></a>
           </div>
           <div>
-            each val in customer_address
-                <div class="d-flex flex px-3" style="width: 100%;"> 
-                    <div class="text col">Street: #{val.Street}, Address Line: #{val.Address_Line}, District: #{val.District}, City: #{val.City}, Pincode: #{val.Pincode}, Country: #{val.Country}</div>
-                </div>
-            end
+            if customer_address.length == 0
+              <div class="mx-5" style="width: 100%;">
+                <p class="text.dark"><span class="fw-bold">None </p>
+              </div>
+            else
+              each val,index in customer_address
+                  <div class="d-flex flex px-3 justify-content-between mb-2" style="border-bottom: 3px solid grey;">
+                      <p class="mt-2">#{val.Street}, #{val.Address_Line}, #{val.City}, #{val.District}, #{val.Country} - #{val.Pincode}</p>
+                      <a href="/Delete_address/#{val.AddressID}"><button type="submit" class="btn btn-secondary ms-2">Delete</button></a>
+                  </div>
+              end
           </div>
         </div>
 

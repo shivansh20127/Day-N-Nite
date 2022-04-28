@@ -25,32 +25,47 @@
             </div>
             <h2 class="mt-5 mb-4">My Orders</h2>
             <div>
-                each val,index in order
-                    <div class="mb-3" style="border-bottom: 2px solid grey;">
-                        <div style="width: 100%;">
-                        <p class="text.dark"><span class="fw-bold">Order ID:</span> #{val.OrderID}</p>
-                            each val3 in products[index]
-                                <div class="mx-5" style="width: 100%;">
-                                <p class="text.dark"><span class="fw-bold">#{val3.Product_Name} </span> x #{val3.Quantity}</p>
-                                </div>
-                            end
-                        </div>
-                        <div class="mx-4" style="width: 100%;">
-                            <p><span class="fw-bold">Total Cost: </span>#{val.Total_cost}</p>
-                        </div>
-                        if val.Order_Status == 'D'
-                            <div class="mx-4" style="width: 100%;">
-                                <p><span class="fw-bold">Delivery Status: </span>Delivered || <span class="fw-bold">Delivery Date: </span>#{val.Date_of_Ordering}</p>
-                            </div>
-                        else
-                            <div class="mx-4" style="width: 100%;">
-                                <p><span class="fw-bold">Delivery Status: </span>Not Delivered || <span class="fw-bold">Delivery Date: </span>#{val.Date_of_Ordering}</p>
-                            </div>
-                        <div class="mx-4" style="width: 100%;">
-                            <p><span class="fw-bold">Delivery Address: </span>#{val.Street}, #{val.Address_Line}, #{val.District}, #{val.City}, #{val.Country} - #{val.Pincode}</p>
-                        </div>
+                if order.length == 0
+                    <div class="mx-5" style="width: 100%;">
+                        <p class="text.dark"><span class="fw-bold">None </p>
                     </div>
-                end
+                else
+                    each val,index in order
+                        <div class="mb-3" style="border-bottom: 2px solid grey;">
+                            <div style="width: 100%;">
+                            <p class="text.dark"><span class="fw-bold">Order ID:</span> #{val.OrderID}</p>
+                                each val3 in products[index]
+                                    <div class="mx-5" style="width: 100%;">
+                                    <p class="text.dark"><span class="fw-bold">#{val3.Product_Name} </span> x #{val3.Quantity}</p>
+                                    </div>
+                                end
+                            </div>
+                            <div class="mx-4" style="width: 100%;">
+                                <p><span class="fw-bold">Total Cost: </span>#{val.Total_cost}</p>
+                            </div>
+                            if val.Order_Status == 'D'
+                                <div class="mx-4" style="width: 100%;">
+                                    <p><span class="fw-bold">Delivery Status: </span>Delivered || <span class="fw-bold">Delivery Date: </span>#{val.Date_of_Ordering}</p>
+                                </div>
+                            if val.Order_Status == 'ND'
+                                <div class="mx-4" style="width: 100%;">
+                                    <p><span class="fw-bold">Delivery Status: </span>Not Delivered || <span class="fw-bold">Delivery Date: </span>#{val.Date_of_Ordering}</p>
+                                </div>
+                            if val.Order_Status == 'R'
+                                <div class="mx-4" style="width: 100%;">
+                                    <p><span class="fw-bold">Delivery Status: </span>Returned || <span class="fw-bold">Delivery Date:
+                                        </span>#{val.Date_of_Ordering}</p>
+                                </div>
+                            if val.Order_Status == 'C'
+                                <div class="mx-4" style="width: 100%;">
+                                    <p><span class="fw-bold">Delivery Status: </span>Cancelled || <span class="fw-bold">Delivery Date:
+                                        </span>#{val.Date_of_Ordering}</p>
+                                </div>
+                            <div class="mx-4" style="width: 100%;">
+                                <p><span class="fw-bold">Delivery Address: </span>#{val.Street}, #{val.Address_Line}, #{val.District}, #{val.City}, #{val.Country} - #{val.Pincode}</p>
+                            </div>
+                        </div>
+                    end
             </div>
 
             

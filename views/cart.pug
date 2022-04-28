@@ -36,8 +36,7 @@
                             each val,index in cart_products
                                 <div class="d-flex flex" style="width: 100%; border-bottom: 2px solid grey;"> 
                                     <img src="#{val.Product_link}" alt="" srcset="" class="img-thumbnail me-3 m-2" style="display: block; height: 50px; width: 50px">
-                                    <p class="mt-3">#{val.Product_Name} || <a href="/productPage/#{val.ProductID}">LINK</a> || MRP: Rs.#{val.Product_MRP} || SGST: #{val.Applicable_SGST}% || CGST: #{val.Applicable_CGST}% || Cost(1 Quantity): Rs.#{pro_total[index]}  <a href="/M#{val.ProductID}"><button type="submit" class="btn btn-secondary">-</button></a> Quantity: #{val.Quantity} <a href="/P#{val.ProductID}"><button type="submit" class="btn btn-secondary">+</button></a> Overall Cost: Rs.#{pro_q_total[index]}</p>
-                                    
+                                    <p class="mt-3">#{val.Product_Name} || <a href="/productPage/#{val.ProductID}">LINK</a> || MRP: Rs.#{val.Product_MRP} || SGST: #{val.Applicable_SGST}% || CGST: #{val.Applicable_CGST}% || Cost(1 Quantity): Rs.#{pro_total[index]}  <a href="/Delete_Payment/M#{val.ProductID}"><button type="submit" class="btn btn-outline-danger">-</button></a> Quantity: #{val.Quantity} <a href="/Delete_Payment/P#{val.ProductID}"><button type="submit" class="btn btn-outline-success">+</button></a> Overall Cost: Rs.#{pro_q_total[index]}</p>
                                 </div>
                             end
                         </div>
