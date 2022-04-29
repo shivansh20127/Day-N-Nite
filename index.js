@@ -5,8 +5,6 @@ var bodyParser = require('body-parser')
 var app = express();
 var connection = require('./database');
 var session = require('express-session');
-const { CompressOutlined } = require("@mui/icons-material");
-const { query } = require("express");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -432,7 +430,8 @@ app.get('/productPage/:ProductID', async function (req, res, next) {
 
 app.get('/Delete_address/:index', isAuthenticated, async function (req, res, next) { 
 	let address_index = req.params.index;
-	let query = "DELETE FROM Account_address WHERE AddressID = " + [address_index] + ";";
+	console.log(address_index);
+	let query = "DELETE FROM Account_address WHERE AddressId = " + [address_index] + ";";
 	let ans = await get_row(query);
 	res.redirect('/signin');
 });
@@ -742,7 +741,7 @@ app.post('/checkout', isAuthenticated, async function (req, res, next) {
 	payment = payment[0];
 	console.log(payment);
 
-	query = "SELECT AddressID, Street, Address_Line, District, City, Pincode, Country FROM Account_address WHERE AddressID="+ address;
+	query = "SELECT AddressId, Street, Address_Line, District, City, Pincode, Country FROM Account_address WHERE AddressId="+ address;
 	ans = await get_row(query);
 	let order_add = ans;
 	console.log(ans[0].Street);
@@ -820,7 +819,7 @@ app.post('/checkout', isAuthenticated, async function (req, res, next) {
 });
 
 	
-app.get('/Delete_Payment/:ID', async function (req, res, next) {
+app.get('/Delete_Payment/:ID', isAuthenticated, async function (req, res, next) {
 	console.log(req.params.ID);
 	let type = req.params.ID[0];
 	let table;
@@ -850,7 +849,7 @@ app.get('/Delete_Payment/:ID', async function (req, res, next) {
 					query = "UPDATE Cart SET Quantity = Quantity - 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 					ans = await get_row(query);
 					quant = quant - 1;
-					if(quant === 0){
+					if(quant === 1){
 						query = "DELETE FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 						ans = await get_row(query);
 					}
