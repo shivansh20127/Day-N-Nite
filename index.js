@@ -4,7 +4,8 @@ const path = require("path");
 var bodyParser = require('body-parser')
 var app = express();
 var connection = require('./database');
-var session = require('express-session')
+var session = require('express-session');
+const { CompressOutlined } = require("@mui/icons-material");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -318,6 +319,7 @@ app.post('/', function (req, res, next) {
 
 
 app.get('/productPage/:ProductID', async function (req, res, next) {
+	console.log('reached');
 	let search = req.params;
 	let query = "SELECT * FROM product WHERE ProductID = " + [search.ProductID] + ";";
 	let product = await get_row(query);
@@ -450,7 +452,7 @@ app.get('/paymentsO', isAuthenticated, async function (req, res, next) {
 });
 
 
-app.get('/cart', async function (req, res, next) {
+app.get('/cart', isAuthenticated, async function (req, res, next) {
 	let query = "SELECT Cart.Quantity, Cart.LoginID, Cart.ProductID, Product.ProductID, Product.Product_Name, Product.Product_MRP, Product.Applicable_SGST, Product.Applicable_CGST, Product.Product_link FROM Cart, Product WHERE Cart.LoginID = '"+userid+"' AND Cart.ProductID = Product.ProductID";
 	let cart_products = await get_row(query);
 	console.log(cart_products);
@@ -465,12 +467,249 @@ app.get('/cart', async function (req, res, next) {
 	}
 	total = Math.floor(total * 100) / 100;
 	console.log(total,pro_total);
-	res.render('cart', { userid, cart_products, pro_total, total, pro_q_total });
+	res.render('cart', { userid : req.session.user, cart_products, pro_total, total, pro_q_total });
+
+});
+
+app.get('/wishlist', isAuthenticated, async function (req, res, next) {
+	let query = "SELECT WishList.LoginID, WishList.ProductID, Product.Product_Name, Product.Product_MRP, Product.Applicable_SGST, Product.Applicable_CGST, Product.Product_link FROM WishList, Product WHERE WishList.LoginID = '"+req.session.user+"' AND WishList.ProductID = Product.ProductID";
+	let wish_products = await get_row(query);
+	console.log(wish_products);
+	res.render('wishlist', { userid : req.session.user, wish_products });
+
+});
+
+app.get('/wcartAdd/:ProductID', async function (req, res, next) {
+	let search = req.params;
+	let ans;
+	console.log(search.ProductID);
+	let query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
+	ans = await get_row(query);
+	if(ans.length == 0){
+		query = "INSERT INTO Cart(LoginID, ProductID) VALUES ('"+req.session.user +"'," + search.ProductID +");"
+		ans = await get_row(query);
+		query = "DELETE FROM WishList WHERE LoginID = '"+req.session.user +"' AND ProductID = "+ search.ProductID +";";
+		ans = await get_row(query);
+		console.log("added");
+	}
+	
+	res.redirect('/wishlist');
+});
+
+
+app.get('/wRemove/:ProductID', async function (req, res, next) {
+	let search = req.params;
+	let query;
+	let ans;
+	console.log(search.ProductID);
+	query = "DELETE FROM WishList WHERE LoginID = '"+req.session.user +"' AND ProductID = "+ search.ProductID +";";
+	ans = await get_row(query);
+	res.redirect('/wishlist');
+});
+
+
+app.get('/AddCart/:ProductID', async function (req, res, next) {
+	let search = req.params;
+	let ans;
+	console.log(search.ProductID);
+	let query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
+	ans = await get_row(query);
+	if(ans.length == 0){
+		query = "INSERT INTO Cart(LoginID, ProductID) VALUES ('"+req.session.user +"'," + search.ProductID +");"
+		ans = await get_row(query);
+		console.log("added")
+	}
+	console.log(search.ProductID);
+	res.redirect('/productPage/' + search.ProductID);
+});
+
+app.get('/AddWish/:ProductID', async function (req, res, next) {
+	let search = req.params;
+	let ans;
+	let query = "SELECT * FROM WishList WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
+	ans = await get_row(query);
+	if(ans.length == 0){
+		query = "INSERT INTO WishList(LoginID, ProductID) VALUES ('"+req.session.user +"'," + search.ProductID +");"
+		ans = await get_row(query);
+		console.log("added");
+	}
+	console.log(search.ProductID);
+	
+	res.redirect('/productPage/' + search.ProductID);
+});
+
+
+app.get('/checkout', isAuthenticated, async function (req, res, next) {
+	let query = "SELECT Cart.Quantity, Cart.LoginID, Cart.ProductID, Product.ProductID, Product.Product_Name, Product.Product_MRP, Product.Applicable_SGST, Product.Applicable_CGST, Product.Product_link FROM Cart, Product WHERE Cart.LoginID = '"+userid+"' AND Cart.ProductID = Product.ProductID";
+	let cart_products = await get_row(query);
+	console.log(cart_products);
+	let total = 0;
+	let pro_total = [];
+	let pro_q_total = [];
+	for (let i = 0; i < cart_products.length; i++) {
+		let ct = (cart_products[i].Product_MRP+((cart_products[i].Applicable_SGST*cart_products[i].Product_MRP)/100)+ ((cart_products[i].Applicable_CGST*cart_products[i].Product_MRP)/100));
+		pro_total.push(Math.floor(ct * 100) / 100);
+		pro_q_total.push(Math.floor((ct * cart_products[i].Quantity) * 100) / 100);
+		total += Math.floor((ct * cart_products[i].Quantity) * 100) / 100;
+	}
+	total = Math.floor(total * 100) / 100;
+	console.log(total,pro_total);
+	query = "SELECT * FROM Payment_Options WHERE LoginID = '"+ req.session.user +"'";
+	let paymentO = await get_row(query);
+	let creditDebit = [];
+	let Net_Banking = [];
+	let UPI = [];
+	for (let i = 0; i < paymentO.length; i++) {
+		if(paymentO[i].Payment_type === 'CreditDebitCard'){
+			query = "SELECT * FROM CreditDebitCard WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			let ans = await get_row(query);
+				if (ans.length != 0)
+					creditDebit.push(ans);
+		}
+		if(paymentO[i].Payment_type === 'NetBanking'){
+			query = "SELECT * FROM Net_Banking WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			let ans = await get_row(query);
+			if (ans.length != 0)
+				Net_Banking.push(ans);
+		}
+		if(paymentO[i].Payment_type === 'UPI'){
+			query = "SELECT * FROM UPI WHERE PaymentID = " + paymentO[i].PaymentID + ";";
+			let ans = await get_row(query);
+			if (ans.length != 0) {
+				UPI.push(ans);
+			}
+		}
+	}
+	console.log(creditDebit, Net_Banking, UPI);
+	query = "SELECT AC.CouponCode, AC.Date_of_allocating, C.Valid_Till, C.Discount_Rate, C.Maximum_Discount FROM Available_coupon AC, Coupon C WHERE AC.LoginID = '"+userid+"' AND AC.CouponCode = C.CouponCode AND C.Valid_Till >= CURDATE()";
+	ans = await get_row(query);
+	console.log(ans);
+	let coupon = ans;
+
+	query = "SELECT * FROM Account_address WHERE LoginID = '" + req.session.user + "'";
+    let customer_address = await get_row(query);
+	console.log(customer_address);
+	code_coupon = 'false';
+	res.render('checkout', { userid : req.session.user, cart_products, pro_total, code_coupon, coupon, total, pro_q_total, paymentO, creditDebit, Net_Banking, UPI, customer_address });
+
+});
+
+app.post('/checkout', isAuthenticated, async function (req, res, next) {
+	const couponUsed = req.body.couponC;
+	let c_used = true;
+	if(couponUsed === 'Select Coupon'){
+		c_used = false;
+	}
+	if(req.body.payC === "Select Payment Option"){
+		res.redirect('checkout');
+	}
+	if(req.body.deliveryAddC === "Select Delivery Address"){
+		res.redirect('checkout');
+	}
+	let query;
+	let ans;
+	let discount = 0;
+	let max_discount = 0;
+	if(c_used === true){
+		let couponCode = couponUsed.split(" ");
+		couponCode = couponCode[0];
+		console.log(couponCode);
+		query = "SELECT Discount_Rate, Maximum_Discount FROM Coupon WHERE CouponCode='"+ couponCode +"'";
+		ans = await get_row(query);
+		console.log(ans);
+		discount = ans[0].Discount_Rate;
+		max_discount = ans[0].Maximum_Discount;
+		console.log(discount, max_discount);
+		// query =  "DELETE FROM Available_coupon WHERE LoginID='"+ req.session.user + "'AND CouponCode='"+ couponCode +"'";
+		// ans = await get_row(query);
+	}
+	let address = req.body.deliveryAddC.split("");
+	address = address[0];
+	console.log(address);
+
+	let payment = req.body.payC.split("");
+	payment = payment[0];
+	console.log(payment);
+
+	query = "SELECT AddressID, Street, Address_Line, District, City, Pincode, Country FROM Account_address WHERE AddressID="+ address;
+	ans = await get_row(query);
+	let order_add = ans;
+	console.log(ans[0].Street);
+
+	let last_order_id = "SELECT MAX(OrderID) AS MOID FROM Order_Table";
+	last_order_id = await get_row(last_order_id);
+	console.log(last_order_id);
+	last_order_id = last_order_id[0].MOID;
+	last_order_id += 1;
+
+
+	let total = 0;
+	query = "SELECT Cart.Quantity, Cart.LoginID, Cart.ProductID, Product.ProductID, Product.Product_Name, Product.Product_MRP, Product.Applicable_SGST, Product.Applicable_CGST, Product.Product_link FROM Cart, Product WHERE Cart.LoginID = '"+userid+"' AND Cart.ProductID = Product.ProductID";
+	let cart_products = await get_row(query);
+	console.log(cart_products);
+	for (let i = 0; i < cart_products.length; i++) {
+		let ct = (cart_products[i].Product_MRP+((cart_products[i].Applicable_SGST*cart_products[i].Product_MRP)/100)+ ((cart_products[i].Applicable_CGST*cart_products[i].Product_MRP)/100));
+		total += Math.floor((ct * cart_products[i].Quantity) * 100) / 100;
+	}
+	total = Math.floor(total * 100) / 100;
+
+	let dis_amount = total*discount/100;
+	dis_amount = Math.max(dis_amount, max_discount);
+	total = total - dis_amount;
+
+
+
+	//stock deletion
+	//if order is for 7 but in stock 1 barcode is 6 and other is 8 then make 6 =0 and 8 -1 = 7
+	query = ""
+	let i = 0;
+	let ans2 = 0;
+	while(i < cart_products.length){
+		query = "SELECT Product_Quantity, barcode FROM Stock WHERE ProductID = "+ cart_products[i].ProductID +";";
+		ans = await get_row(query);
+		ans = JSON.parse(JSON.stringify(ans));
+		console.log(ans);
+		let quant = cart_products[i].Quantity;
+		let j = 0;
+		while(quant > 0){
+			console.log(j, quant);
+			if(ans[j].Product_Quantity >= quant){
+				ans[j].Product_Quantity = ans[j].Product_Quantity - quant;
+				quant = 0;
+				query = "UPDATE Stock SET Product_Quantity = "+ans[j].Product_Quantity+" WHERE ProductID = "+ cart_products[i].ProductID +" AND barcode = '"+ cart_products[i].barcode +"';";
+				ans2 = await get_row(query);
+			}
+			else if(ans[j].Product_Quantity < quant){
+				quant = quant - ans[j].Product_Quantity;
+				query = "UPDATE Stock SET Product_Quantity = "+0+" WHERE ProductID = "+ cart_products[i].ProductID +" AND barcode = '"+ cart_products[i].barcode +"';";
+				ans2 = await get_row(query);
+			}
+			j++;
+		}
+		i++;
+	}
+
+	ans = order_add;
+	query = "INSERT INTO Order_Table(OrderID, PaymentID, Total_cost, Street, Address_Line, District, City, Pincode, Country) VALUES ("+ last_order_id +"," + payment +","+ total+",'"+ans[0].Street+"','"+ans[0].Address_Line +"','"+ans[0].District+"','"+ ans[0].City+"','"+ans[0].Pincode+"','"+ans[0].Country+"');"
+	ans = await get_row(query);
+	query = "INSERT INTO OnlineOrder(OrderID, LoginID, Date_of_Ordering) VALUES ("+ last_order_id +",'" + req.session.user +"',CURDATE());"
+	ans = await get_row(query);
+	query = "SELECT * FROM Cart WHERE LoginID = '"+req.session.user +"'";
+	ans = await get_row(query);
+
+	for (let i = 0; i < ans.length; i++) {
+		query = "INSERT INTO Order_List(OrderID, ProductID, Quantity) VALUES ("+ last_order_id +"," + ans[i].ProductID +","+ ans[i].Quantity+");"
+		ans2 = await get_row(query);
+		query = "DELETE FROM Cart WHERE LoginID = '"+req.session.user +"' AND ProductID = "+ ans[i].ProductID +";";
+		ans2 = await get_row(query);
+	}
+
+	res.redirect('my_order');
 
 });
 
 	
-app.get('/:ID', async function (req, res, next) {
+app.get('/:ID', isAuthenticated, async function (req, res, next) {
 	console.log(req.params.ID);
 	let type = req.params.ID[0];
 	let table;
@@ -492,21 +731,21 @@ app.get('/:ID', async function (req, res, next) {
 					ans = await get_row(query);
 					res.redirect('/paymentsO');
 					break; 
-		case 'M': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+		case 'M': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+ req.session.user +"'";
 					ans = await get_row(query);
 					let quant = JSON.parse(JSON.stringify(ans));
 					quant = quant[0].Quantity;
 					// console.log(quant[0].Quantity);
-					query = "UPDATE Cart SET Quantity = Quantity - 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+					query = "UPDATE Cart SET Quantity = Quantity - 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 					ans = await get_row(query);
 					quant = quant - 1;
 					if(quant === 0){
-						query = "DELETE FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+						query = "DELETE FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 						ans = await get_row(query);
 					}
 					res.redirect('/cart');
 					break;
-		case 'P': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+		case 'P': query = "SELECT Quantity FROM Cart WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 					ans = await get_row(query);
 					let quant1 = JSON.parse(JSON.stringify(ans));
 					quant1 = quant1[0].Quantity;
@@ -515,7 +754,7 @@ app.get('/:ID', async function (req, res, next) {
 					let pc = JSON.parse(JSON.stringify(ans));
 					pc = pc[0].Quantity;
 					if(pc > quant1){
-						query = "UPDATE Cart SET Quantity = Quantity + 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+userid+"'";
+						query = "UPDATE Cart SET Quantity = Quantity + 1 WHERE ProductID = " + req.params.ID.substring(1) + " AND LoginID = '"+req.session.user+"'";
 						ans = await get_row(query);
 						res.redirect('/cart');
 					}
@@ -525,7 +764,12 @@ app.get('/:ID', async function (req, res, next) {
 
 					// console.log(quant[0].Quantity);
 					
-					break; 
+					break;
+		
 	}
 	
 });
+
+
+
+
