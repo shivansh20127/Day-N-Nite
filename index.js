@@ -6,6 +6,7 @@ var app = express();
 var connection = require('./database');
 var session = require('express-session');
 const { CompressOutlined } = require("@mui/icons-material");
+const { query } = require("express");
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -208,7 +209,99 @@ app.get('/add_address', isAuthenticated, function (req, res) {
 	res.render('add_address', {userid : req.session.user});
 });
 
+app.get('/returnCancel', isAuthenticated, async function (req, res) { 
+	res.render('returnCancel', {userid : req.session.user});
+});
 
+app.post('/returnCancel', isAuthenticated, async function (req, res) { 
+	let option = req.body.Option;
+	let ID = req.body.ID;
+	if (option == "Return") {
+		let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + req.session.user + "' and OrderID = " + ID + " and Order_Status = 'D'";
+		let order = await get_row(query);
+		console.log(order);
+		if (order.length == 0) {
+			res.render('returnCancel', {
+				error: "Order not found"
+			});
+			return;
+		}
+		query = "UPDATE Order_Table SET Order_Status = 'R' WHERE OrderID = " + ID + " and Order_Status = 'D'";
+		let ans = await get_row(query);
+		query = "select * from Deliver where OrderID = " + ID;
+		let deliver = await get_row(query);
+		query = "insert into OnlineReturn(OrderID, LoginID, ServiceID, Reason_for_Return) values(" + ID + ", '" + req.session.user + "', " + deliver[0].ServiceID + ", '" + req.body.Reason + "')";
+		ans = await get_row(query);
+	}
+	else if (option == "Cancel") {
+		let query = "SELECT * FROM ORDER_PAGE WHERE LoginID = '" + req.session.user + "' and OrderID = " + ID + " and Order_Status = 'ND'";
+		let order = await get_row(query);
+		if (order.length == 0) {
+			res.render('returnCancel', {
+				error: "Order not found"
+			});
+			return;
+		}
+		query = "UPDATE Order_Table SET Order_Table = 'C' WHERE OrderID = " + ID + " and Order_Status = 'ND'";
+		let ans = await update_query(query);
+	}
+	res.redirect('/signin');
+});
+
+app.post('/add_address', isAuthenticated, async function (req, res) {
+	let Street = req.body.Street;
+	let City = req.body.City;
+	let District = req.body.District;
+	let Zip = req.body.zip;
+	let Country = req.body.Country;
+	let Address_Line = req.body.Address_Line;
+	if(Street == "" || City == "" || District == "" || Zip == "" || Country == "" || Address_Line == "") {
+		res.render('add_address', {
+			error : "Please fill in all the fields"
+		});
+		return;
+	}
+	console.log(Zip);
+	let query = "INSERT INTO Account_address (LoginID, Street, City, District, Pincode, Country, Address_Line) VALUES ('" + req.session.user + "', '" + Street + "', '" + City + "', '" + District + "', '" + Zip + "', '" + Country + "', '" + Address_Line + "')";
+	let ans = await get_row(query);
+	res.redirect('/signin');
+});
+
+
+app.get('/claim_coupons', isAuthenticated, async function (req, res) {
+	let query = "select * from Coupon where Valid_Till >= CURDATE()";
+	let Coupons = await get_row(query);
+	query = "Select Bazaar_Coins from Account where LoginID = '" + req.session.user + "'";
+	let Coins = await get_row(query);
+	query = "Select Available_coupon.CouponCode, Valid_Till, Date_of_allocating, Date_of_allocating, Discount_Rate, Maximum_Discount from Available_coupon left join Coupon on Available_coupon.CouponCode = Coupon.CouponCode where LoginID = '" + req.session.user + "'";
+	let Available = await get_row(query);
+	let error = req.session.error;
+	req.session.error = null;
+	res.render('claim_coupons', {userid : req.session.user, Coupons : Coupons, Coins : Coins, Available : Available, error : error});
+});
+
+app.post('/claim_coupons', isAuthenticated, async function (req, res) { 
+	let CouponID = req.body.Coupon;
+	let query = "select * from Coupon where CouponCode = '" + CouponID + "';";
+	let Coupon = await get_row(query);
+	if (Coupon.length == 0) {
+		req.session.error = "Coupon not found";
+		res.redirect('claim_coupons');
+		return;
+	}
+	query = "Select Bazaar_Coins from Account where LoginID = '" + req.session.user + "'";
+	let Coins = await get_row(query);
+	if (Coins[0].Bazaar_Coins < 500) {
+		req.session.error = "Insufficient Bazaar Coins";
+		res.redirect('claim_coupons');
+		return;
+	}
+	query = "update Account set Bazaar_Coins = Bazaar_Coins - 500 where LoginID = '" + req.session.user + "'";
+	let ans = await get_row(query);
+	query = "insert into Available_coupon(LoginID, CouponCode, Date_of_allocating) values('" + req.session.user + "', '" + Coupon[0].CouponCode + "', CURDATE())";
+	ans = await get_row(query);
+	res.redirect('/signin');
+});
 
 //stock page
 app.get('/stock', isemployee, async function (req, res) {
@@ -337,7 +430,12 @@ app.get('/productPage/:ProductID', async function (req, res, next) {
 	}
 });
 
-
+app.get('/Delete_address/:index', isAuthenticated, async function (req, res, next) { 
+	let address_index = req.params.index;
+	let query = "DELETE FROM Account_address WHERE AddressID = " + [address_index] + ";";
+	let ans = await get_row(query);
+	res.redirect('/signin');
+});
 
 app.post('/productPage/:ProductID', async function (req, res, next) {
 	let question = req.body.question;
@@ -408,6 +506,7 @@ app.get('/my_order', isAuthenticated, async function (req, res, next) {
 		query = "SELECT * FROM Product_order WHERE OrderID = " + order[i].OrderID + ";";
 		products.push(await get_row(query));
 	}
+	console.log(order);
 	res.render('my_order', { order, products, userid : req.session.user });
 });
 
@@ -483,7 +582,13 @@ app.get('/wcartAdd/:ProductID', async function (req, res, next) {
 	let search = req.params;
 	let ans;
 	console.log(search.ProductID);
-	let query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
+	let query = "SELECT MAX(Product_Quantity) AS PQ FROM Stock WHERE ProductID =" + search.ProductID +";";
+	ans = await get_row(query);
+	if(ans[0].PQ < 1){
+		res.redirect('/wishlist');
+		return;
+	}
+	query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
 	ans = await get_row(query);
 	if(ans.length == 0){
 		query = "INSERT INTO Cart(LoginID, ProductID) VALUES ('"+req.session.user +"'," + search.ProductID +");"
@@ -512,7 +617,13 @@ app.get('/AddCart/:ProductID', async function (req, res, next) {
 	let search = req.params;
 	let ans;
 	console.log(search.ProductID);
-	let query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
+	let query = "SELECT MAX(Product_Quantity) AS PQ FROM Stock WHERE ProductID =" + search.ProductID +";";
+	ans = await get_row(query);
+	if(ans[0].PQ < 1){
+		res.redirect('/productPage/' + search.ProductID);
+		return;
+	}
+	query = "SELECT * FROM Cart WHERE LoginID='"+req.session.user +"' AND ProductID=" + search.ProductID +";";
 	ans = await get_row(query);
 	if(ans.length == 0){
 		query = "INSERT INTO Cart(LoginID, ProductID) VALUES ('"+req.session.user +"'," + search.ProductID +");"
@@ -709,7 +820,7 @@ app.post('/checkout', isAuthenticated, async function (req, res, next) {
 });
 
 	
-app.get('/:ID', isAuthenticated, async function (req, res, next) {
+app.get('/Delete_Payment/:ID', async function (req, res, next) {
 	console.log(req.params.ID);
 	let type = req.params.ID[0];
 	let table;
