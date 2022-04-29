@@ -23,33 +23,30 @@
                     <button type="submit" class="ms-1 px-2" value="OK">GO</button>
                 </form><a href="/signin" style="color: black; margin-top: 15px;">#{userid}</a>
             </div>
-            <h2 class="mt-5 mb-4 mx-1">Cart</h2>
+            <h2 class="mt-5 mb-4 mx-1">Wish List</h2>
             <div>
                 <div class="mb-3">
                     <div style="width: 100%;">
-                    if cart_products.length == 0
+                    if wish_products.length == 0
                         <div class="mx-5" style="width: 100%;">
                             <p class="text.dark"><span class="fw-bold">None </p>
                         </div>
                     else
-                        <div class="mx-5" style="width: 100%; ">
-                            each val,index in cart_products
-                                <div class="d-flex flex" style="width: 100%; border-bottom: 2px solid grey;"> 
-                                    <img src="#{val.Product_link}" alt="" srcset="" class="img-thumbnail me-3 m-2" style="display: block; height: 50px; width: 50px">
-                                    <p class="mt-3">#{val.Product_Name} || <a href="/productPage/#{val.ProductID}">LINK</a> || MRP: Rs.#{val.Product_MRP} || SGST: #{val.Applicable_SGST}% || CGST: #{val.Applicable_CGST}% || Cost(1 Quantity): Rs.#{pro_total[index]}  <a href="/Delete_Payment/M#{val.ProductID}"><button type="submit" class="btn btn-outline-danger">-</button></a> Quantity: #{val.Quantity} <a href="/Delete_Payment/P#{val.ProductID}"><button type="submit" class="btn btn-outline-success">+</button></a> Overall Cost: Rs.#{pro_q_total[index]}</p>
+                        <div class="mx-5">
+                            each val,index in wish_products
+                                <div class="d-flex flex justify-content-between" style="border-bottom: 2px solid grey;"> 
+                                    <div class="d-flex flex">
+                                        <img src="#{val.Product_link}" alt="" srcset="" class="img-thumbnail me-3 m-2" style="display: block; height: 50px; width: 50px">
+                                        <p class="mt-3">#{val.Product_Name} || <a href="/productPage/#{val.ProductID}">LINK</a> || MRP: Rs.#{val.Product_MRP} || SGST: #{val.Applicable_SGST}% || CGST: #{val.Applicable_CGST}% </p>
+                                    </div>
+                                    <div class="d-flex flex">
+                                        <p class="mx-5 mt-2"><a href="/wcartAdd/#{val.ProductID}"><button class="btn btn-success">Add to Cart</button></a></p>
+                                        <p class="mx-5 mt-2"><a href="/wRemove/#{val.ProductID}"><button class="btn btn-danger">Remove</button></a></p>
+                                    </div>
                                 </div>
                             end
                         </div>
-                        <div class="mx-7 mt-2 d-flex flex justify-content-end" style="width: 100%;">
-                            <p class="text.dark"><span class="fw-bold">Total Amount: </span>Rs.#{total}/- </p>
-                        </div>
-    
 
-
-
-                        <div class="d-flex flex justify-content-center"> 
-                            <p class="mt-3 flex-end"><a href="/checkout"><button type="submit" class="btn btn-secondary">CHECKOUT</button></a></p>    
-                        </div>
                     </div>
                 </div>    
             </div>
