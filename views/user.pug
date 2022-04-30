@@ -62,21 +62,27 @@
           else
             <div class="col-lg-7 py-1 px-0 mx-0 fs-7 fw-bold text-success">Non-Prime</div>
           <div class="col-lg-2 px-5">#{customer[0].Email_ID}</div>
-          <div class="col-lg-1 mb-4">
+        </div>
+
+        <div class="mt-5">
+          <div class="fs-5 fw-bold col d-flex flex">
+            <p class="text">Your Contact Number/s:</p>
+            <a href="/add_number"><button type="submit" class=" ms-4 mb-5 btn btn-outline-success">Add Contact Number</button></a>
+          </div>
+          <div >
             each val in customer_phone
-                <div class="d-flex flex" style="width: 100%;"> 
-                    <div class="text col">#{val.phone_number}</div>
-                </div>
+              <div class="d-flex flex px-3 justify-content-between mb-2" style="border-bottom: 3px solid grey;">
+                <p class="mt-2">#{val.phone_number}</p>
+                <a href="/Delete_Number/#{val.phone_number}"><button type="submit" class="btn btn-secondary ms-2">Delete</button></a>
+              </div>
             end
           </div>
-          //- <div class="p-2 bd-highlight">#{customer[0].}</div>
-        </div>
 
         
 
 
         <div class="mt-5 row">
-          <div class="fs-5 fw-bold text-info col d-flex flex">
+          <div class="fs-5 fw-bold col d-flex flex">
             <p class="text">Your Address/es:</p>
             <a href="/add_address"><button type="submit" class=" ms-4 mb-5 btn btn-outline-success">Add Address</button></a>
           </div>

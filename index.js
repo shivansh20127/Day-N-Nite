@@ -157,50 +157,107 @@ app.get('/signin', function (req, res) {
 app.post('/signin',async function (req, res) {
 	let username = req.body.userid;
 	let password = req.body.userpasswd;
+	let role = req.body.Role;
 	if(username == "" || password == "") {
 		res.render('signin', {
 			error : "Please fill in all the fields"
 		});
 		return;
 	}
-	if (password == Number(password)) {
-		let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and EmployeeID = " + password;
-		let emp = await get_row(isemp);
-		if (emp.length != 0) {
-			req.session.isemployee = true;
-			req.session.branchid = emp[0].BranchID;
-			res.redirect('stock');
-			return;
+	if (role == "Employee") {
+		if (password == Number(password)) {
+			let isemp = "SELECT * FROM Employee WHERE Email_ID = '" + username + "' and EmployeeID = " + password;
+			let emp = await get_row(isemp);
+			if (emp.length != 0) {
+				req.session.isemployee = true;
+				req.session.branchid = emp[0].BranchID;
+				res.redirect('stock');
+				return;
+			}
+			else {
+				res.render('signin', {
+					error : "Invalid Employee ID/Password"
+				});
+				return;
+			}
 		}
-
-		let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and SupplierID = " + password;
-		let supp = await get_row(issupp);
-		if(supp.length != 0) {
-			req.session.issupplier = true;
-			req.session.supplierid = supp[0].SupplierID;
-			res.redirect('supplier');
-			return;
+		else {
+			res.render('signin', {
+					error : "Invalid Employee ID/Password"
+				});
+				return;
 		}
 	}
 
-	userid = username;
-	let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
-	connection.query(query, function (err, rows) {
-		if (err) throw err;
-		if (rows.length > 0) {
-			req.session.user = username;
-			req.session.auth = true;
-			res.redirect('./', 280, {
-				userid: username,
-				products: products
-			});
-		} else {
-			userid = null;
-			res.render('signin', {
-				error : "Invalid username or password"
-			});
+	if (role == "Supplier") {
+		if (password === Number(password)) {
+			let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and SupplierID = " + password;
+			let supp = await get_row(issupp);
+			if(supp.length != 0) {
+				req.session.issupplier = true;
+				req.session.supplierid = supp[0].SupplierID;
+				res.redirect('supplier');
+				return;
+			}
+			else {
+				res.render('signin', {
+					error : "Invalid Supplier ID/Password"
+				});
+				return;
+			}
 		}
-	});
+		else {
+			res.render('signin', {
+					error : "Invalid Supplier ID/Password"
+				});
+				return;
+		}
+	}
+
+	// if (role == "Supplier") {
+	// 	if (password === Number(password)) {
+	// 		let issupp = "SELECT * FROM Supplier WHERE Email_ID = '" + username + "' and SupplierID = " + password;
+	// 		let supp = await get_row(issupp);
+	// 		if(supp.length != 0) {
+	// 			req.session.issupplier = true;
+	// 			req.session.supplierid = supp[0].SupplierID;
+	// 			res.redirect('supplier');
+	// 			return;
+	// 		}
+	// 		else {
+	// 			res.render('signin', {
+	// 				error : "Invalid Supplier ID/Password"
+	// 			});
+	// 			return;
+	// 		}
+	// 	}
+	// 	else {
+	// 		res.redirect('signin', { error: "Invalid Supplier ID/Password" });
+	// 		return;
+	// 	}
+	// }
+
+
+	if (role == "Customer") {
+		userid = username;
+		let query = "SELECT * FROM Account WHERE loginID = '" + username + "' AND Password = '" + password + "'";
+		connection.query(query, function (err, rows) {
+			if (err) throw err;
+			if (rows.length > 0) {
+				req.session.user = username;
+				req.session.auth = true;
+				res.redirect('./', 280, {
+					userid: username,
+					products: products
+				});
+			} else {
+				userid = null;
+				res.render('signin', {
+					error: "Invalid username or password"
+				});
+			}
+		});
+	}
 });
 
 app.get('/add_address', isAuthenticated, function (req, res) {
@@ -312,6 +369,7 @@ app.get('/stock', isemployee, async function (req, res) {
 		stock[i].ProductName = product[0].Product_Name;
 		stock[i].ProductPrice = product[0].Product_MRP;
 	}
+	console.log(stock, branchid);
 	res.render('stock', { stock });
 });
 
@@ -881,5 +939,137 @@ app.get('/Delete_Payment/:ID', isAuthenticated, async function (req, res, next) 
 });
 
 
+app.get('/add_number', isAuthenticated, async function (req, res, next) { 
+	res.render('add_number', { userid : req.session.user, error : req.session.error});
+})
+
+app.post('/add_number', isAuthenticated, async function (req, res, next) { 
+	if (req.body.number.length != 10) {
+		req.session.error = "Phone number must be 10 digits";
+		res.redirect('/add_number');
+	}
+	else {
+		let query = "select CustomerID from Account where LoginID = '" + req.session.user + "'";
+		let id = await get_row(query);
+		if (true) {
+			query = "select * from Customer_Phone where phone_number = '" + req.body.number + "' and CustomerID = '" + id[0].CustomerID + "'";
+			let ans = await get_row(query);
+			if (ans.length > 0) {
+				req.session.error = "Phone number already exists";
+				res.redirect('/add_number');
+				return;
+			}
+		}
+		query = "INSERT INTO Customer_Phone(CustomerID, phone_number) VALUES ('" + id[0].CustomerID + "','" + req.body.number + "');";
+		let ans = await get_row(query);
+		res.redirect('/signin');
+	}
+});
+
+app.get('/Delete_Number/:number', isAuthenticated, async function (req, res, next) { 
+	let number = req.params.number;
+	let query = "select CustomerID from Account where LoginID = '" + req.session.user + "'";
+	let id = await get_row(query);
+	query = "Delete from Customer_Phone where CustomerID = '" + id[0].CustomerID + "' AND phone_number = '" + number + "';";
+	let ans = await get_row(query);
+	res.redirect('/signin');
+});
+
+app.get('/add_payment_option', isAuthenticated, async function (req, res, next) { 
+	res.render('add_payment_option', { userid : req.session.user, error : req.session.error, error2 : req.session.error2, error3 : req.session.error3});
+});
+
+app.post('/add_debitCredit_option', isAuthenticated, async function (req, res, next) { 
+	let name = req.body.card_name;
+	let number = req.body.card_number;
+	let date = req.body.card_date;
+	if (number === '' || name === '' || date === '') {
+		req.session.error = "All fields are required";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	if (number.length != 16) {
+		req.session.error = "Card number must be 16 digits";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	let query = "select * from CreditDebitCard where card_number = '" + number + "'";
+	let ans = await get_row(query);
+	if (ans.length > 0) {
+		req.session.error = "Card number already exists";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	query = "select max(PaymentID) as max from Payment_Options";
+	ans = await get_row(query);
+	let id = JSON.parse(JSON.stringify(ans));
+	id = id[0].max;
+	id = id + 1;
+	query = "Insert into Payment_Options (PaymentID, LoginID, Payment_type) values (" + id + ",'" + req.session.user + "','CreditDebitCard');";
+	ans = await get_row(query);
+	query = "insert into CreditDebitCard (Holder_Name, Card_Number, Expiry_Date, PaymentID) values ('" + name + "','" + number + "','" + date + "-01'," + id + ");";
+	ans = await get_row(query);
+	res.redirect('/signin');
+});
 
 
+app.post('/add_Net_Banking_option', isAuthenticated, async function (req, res, next) { 
+	let name = req.body.account_name;
+	let number = req.body.account_number;
+	let bank = req.body.bank_name;
+	let IFSC_code = req.body.IFSC_code;
+	if (number === '' || name === '' || bank === '' || IFSC_code === '') {
+		req.session.error2 = "All fields are required";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	if (number.length != 16) {
+		req.session.error2 = "Account number must be 16 digits";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	let query = "select * from Net_Banking where Account_Number = '" + number + "'";
+	let ans = await get_row(query);
+	if (ans.length > 0) {
+		req.session.error2 = "Account number already added";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	query = "select max(PaymentID) as max from Payment_Options";
+	ans = await get_row(query);
+	let id = JSON.parse(JSON.stringify(ans));
+	id = id[0].max;
+	id = id + 1;
+	query = "Insert into Payment_Options (PaymentID, LoginID, Payment_type) values (" + id + ",'" + req.session.user + "','NetBanking');";
+	ans = await get_row(query);
+	query = "insert into Net_Banking (account_number, holder_name, bank_name, ifsc_code, paymentid) values ('" + number + "','" + name + "','" + bank + "','" + IFSC_code + "'," + id + ");";
+	ans = await get_row(query);
+	res.redirect('/signin');
+});
+
+
+app.post('/add_UPI_option', isAuthenticated, async function (req, res, next) { 
+	let upi_id = req.body.ID;
+	if (upi_id.length == 0) {
+		req.session.error3 = "UPI ID is required";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	let query = "select * from UPI where upi_id = '" + upi_id + "'";
+	let ans = await get_row(query);
+	if (ans.length > 0) {
+		req.session.error3 = "UPI already exists";
+		res.redirect('/add_payment_option');
+		return;
+	}
+	query = "select max(PaymentID) as max from Payment_Options";
+	ans = await get_row(query);
+	let id = JSON.parse(JSON.stringify(ans));
+	id = id[0].max;
+	id = id + 1;
+	query = "Insert into Payment_Options (PaymentID, LoginID, Payment_type) values (" + id + ",'" + req.session.user + "','UPI');";
+	ans = await get_row(query);
+	query = "insert into UPI (upi_id, paymentid) values ('" + upi_id + "'," + id + ");";
+	ans = await get_row(query);
+	res.redirect('/signin');
+});
